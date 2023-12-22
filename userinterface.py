@@ -20,7 +20,7 @@ class App:
     def __init__(self):
 
         self.current_user_name = None  #  initialize the attribute name
-        self.logged_in = False
+        self.logged_in = False #initialize the log in test
 
 
 
