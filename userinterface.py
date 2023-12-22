@@ -1,4 +1,4 @@
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import cv2
@@ -10,6 +10,8 @@ from PIL import Image, ImageTk
 import face_recognition
 import numpy as np
 import pymongo
+import tkinter.simpledialog
+
 
 
 
@@ -21,6 +23,7 @@ class App:
 
         self.current_user_name = None  #  initialize the attribute name
         self.logged_in = False
+        self.admin_logged_in = False  # Keep track of admin login status
 
 
 
@@ -50,22 +53,34 @@ class App:
         self.option_frame.pack(side=ctk.LEFT)
         self.option_frame.pack_propagate(False)
         self.option_frame.configure(height=620, width=100)
-        self.takeAttendance_btn = ctk.CTkButton(self.option_frame,text='Take\nAttendancy',font=('Bold', 15),fg_color='#292727',bg_color='#292727',text_color='#158aff',hover_color='#333232',corner_radius=0,border_width=0,width=100,height=35,
-            command=lambda: self.indicate(self.takeAttendance_indicate, self.takeAttendance_page)  #login interface
-        )
+
+        self.takeAttendance_btn = ctk.CTkButton(self.option_frame, text='Take\nAttendancy', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35,
+                                               command=lambda: self.indicate(self.takeAttendance_indicate, self.takeAttendance_page))
 
         self.takeAttendance_btn.pack(pady=20)
         self.takeAttendance_btn.configure(state="normal")
-        self.takeAttendance_indicate =  ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.takeAttendance_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.takeAttendance_indicate.place(x=3, y=20)
 
-        # Add the Register button
-        self.register_btn = ctk.CTkButton(self.option_frame, text='Register', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35,
-                                           command=lambda: self.indicate(self.register_indicate, self.register_page)) 
-        self.register_btn.pack(pady=20)
-        self.register_btn.configure(state="normal")
+        # Add the "Admin" button (initially disabled)
+        self.admin_btn = ctk.CTkButton(self.option_frame, text='Admin', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35, state="normal",
+                                           command=lambda: self.indicate(self.register_indicate, self.admin_page))
+        self.admin_btn.pack(pady=20)
+
         self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.register_indicate.place(x=3, y=60)
+
+        # Add the "Register User" button (initially disabled)
+        self.register_btn = ctk.CTkButton(self.option_frame, text='Register User', font=('Bold', 15), fg_color='#292727',
+                                          bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                          corner_radius=0, border_width=0, width=100, height=35,
+                                          command=lambda: self.indicate(self.register_indicate, self.register_page))
+        self.register_btn.pack(pady=20)
+        self.register_btn.pack_forget()  # Set initial state to "hidden"
+
+        # Add the "List Users" button (initially disabled)
+        #self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35, state="disabled",command=self.list_users)
+        #self.list_users_btn.pack(pady=20)
 
     def buildFrontend_mainFrame(self):
         self.main_frame = ctk.CTkFrame(self.root, border_color='black', border_width=5)
@@ -88,6 +103,35 @@ class App:
         self.delete_frameContent()
         page()
 
+
+    def admin_page(self):
+        # Use your authentication logic to verify admin credentials
+        admin_username = "admin"  # Replace with actual admin username
+        admin_password = "password"  # Replace with actual admin password
+
+
+        entered_username = tkinter.simpledialog.askstring("Admin Login", "Enter username:")
+        entered_password = tkinter.simpledialog.askstring("Admin Login", "Enter password:", show='*')
+
+        if entered_username == admin_username and entered_password == admin_password:
+            messagebox.showinfo("Success", "Admin login successful!")
+
+            # Enable buttons for admin functionalities
+            self.admin_logged_in = True
+            self.enable_admin_buttons()
+
+        else:
+            messagebox.showerror("Error", "Invalid admin credentials!")
+
+    def enable_admin_buttons(self):
+        # Check if the admin is logged in before enabling buttons
+        if self.admin_logged_in:
+            # Enable the buttons for admin functionalities
+            self.register_btn.pack()
+            self.takeAttendance_btn.pack_forget()
+            self.admin_btn.pack_forget()
+
+            #self.list_users_btn.configure(state="normal")
 
     def start_working(self):
         timestamp = datetime.now()
@@ -226,6 +270,16 @@ class App:
 
         # Go back to the login page
         self.takeAttendance_btn.invoke()
+        self.hide_admin_buttons()
+        
+
+
+    def hide_admin_buttons(self):
+        # Hide the buttons for admin functionalities
+        self.register_btn.pack_forget()
+        self.takeAttendance_btn.pack()
+        self.admin_btn.pack()
+
 
 
 
