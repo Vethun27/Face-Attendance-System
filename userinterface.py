@@ -62,7 +62,7 @@ class App:
         self.takeAttendance_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.takeAttendance_indicate.place(x=3, y=20)
 
-        # Add the "Admin" button (initially disabled)
+       
         self.admin_btn = ctk.CTkButton(self.option_frame, text='Admin', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35, state="normal",
                                            command=lambda: self.indicate(self.register_indicate, self.admin_page))
         self.admin_btn.pack(pady=20)
@@ -105,9 +105,8 @@ class App:
 
 
     def admin_page(self):
-        # Use your authentication logic to verify admin credentials
-        admin_username = "admin"  # Replace with actual admin username
-        admin_password = "password"  # Replace with actual admin password
+        admin_username = "admin"  #  admin username
+        admin_password = "password"  #  admin password
 
 
         entered_username = tkinter.simpledialog.askstring("Admin Login", "Enter username:")
