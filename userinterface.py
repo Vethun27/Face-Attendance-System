@@ -50,7 +50,7 @@ class App:
         self.option_frame.pack(side=ctk.LEFT)
         self.option_frame.pack_propagate(False)
         self.option_frame.configure(height=620, width=100)
-        self.takeAttendance_btn = ctk.CTkButton(self.option_frame,text='Login',font=('Bold', 15),fg_color='#292727',bg_color='#292727',text_color='#158aff',hover_color='#333232',corner_radius=0,border_width=0,width=100,height=35,
+        self.takeAttendance_btn = ctk.CTkButton(self.option_frame,text='Take\nAttendancy',font=('Bold', 15),fg_color='#292727',bg_color='#292727',text_color='#158aff',hover_color='#333232',corner_radius=0,border_width=0,width=100,height=35,
             command=lambda: self.indicate(self.takeAttendance_indicate, self.takeAttendance_page)  #login interface
         )
 
