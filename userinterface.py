@@ -1,4 +1,4 @@
-from tkinter import messagebox, ttk
+from tkinter import Tk, TkVersion, messagebox, ttk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import cv2
@@ -10,7 +10,6 @@ from PIL import Image, ImageTk
 import face_recognition
 import numpy as np
 import pymongo
-import tkinter.simpledialog
 
 
 
@@ -60,27 +59,50 @@ class App:
         self.takeAttendance_btn.pack(pady=20)
         self.takeAttendance_btn.configure(state="normal")
         self.takeAttendance_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.takeAttendance_indicate.place(x=3, y=20)
+        #self.takeAttendance_indicate.place(x=0, y=0)
 
        
         self.admin_btn = ctk.CTkButton(self.option_frame, text='Admin', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35, state="normal",
-                                           command=lambda: self.indicate(self.register_indicate, self.admin_page))
+                                           command=lambda: self.indicate(self.admin_indicate, self.admin_page))
         self.admin_btn.pack(pady=20)
+        self.admin_btn.configure(state="normal")
+        self.admin_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        #self.admin_indicate.place(x=0, y=0)
 
-        self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.register_indicate.place(x=3, y=60)
+       
 
         # Add the "Register User" button (initially disabled)
         self.register_btn = ctk.CTkButton(self.option_frame, text='Register User', font=('Bold', 15), fg_color='#292727',
                                           bg_color='#292727', text_color='#158aff', hover_color='#333232',
                                           corner_radius=0, border_width=0, width=100, height=35,
                                           command=lambda: self.indicate(self.register_indicate, self.register_page))
+        
+        self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        #self.register_indicate.place(x=3, y=20)
         self.register_btn.pack(pady=20)
         self.register_btn.pack_forget()  # Set initial state to "hidden"
 
         # Add the "List Users" button (initially disabled)
-        #self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=100, height=35, state="disabled",command=self.list_users)
-        #self.list_users_btn.pack(pady=20)
+        self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                            corner_radius=0, border_width=0, width=100, height=35,
+                                            command=lambda: self.indicate(self.list_users_indicate,self.list_users))
+        
+        self.list_users_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.list_users_btn.pack(pady=20)
+        self.list_users_btn.pack_forget()  # Set initial state to "hidden"
+
+        # Add the "List Users" button (initially disabled)
+        self.logout_admin_btn = ctk.CTkButton(self.option_frame, text='Back to main', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                            corner_radius=0, border_width=0, width=100, height=35,
+                                            command=lambda : self.indicate(self.logout_admin_indicate,self.logout_admin))
+        
+        self.logout_admin_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.logout_admin_btn.pack(pady=20)
+        self.logout_admin_btn.pack_forget()  # Set initial state to "hidden"
+        
+
 
     def buildFrontend_mainFrame(self):
         self.main_frame = ctk.CTkFrame(self.root, border_color='black', border_width=5)
@@ -105,19 +127,27 @@ class App:
 
 
     def admin_page(self):
+
+
+
+        adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        adminname.pack(pady=10)
+        adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*')
+        adminpw.pack(pady=10)
+        login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), bg_color='black', fg_color='white', hover_color='black', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
+        login_btn.pack(pady=20)
+
+    def login_admin(self,adminname,adminpw):
         admin_username = "admin"  #  admin username
-        admin_password = "password"  #  admin password
-
-
-        entered_username = tkinter.simpledialog.askstring("Admin Login", "Enter username:")
-        entered_password = tkinter.simpledialog.askstring("Admin Login", "Enter password:", show='*')
-
-        if entered_username == admin_username and entered_password == admin_password:
+        admin_password = "admin"  #  admin password
+        if adminname == admin_username and adminpw == admin_password:
             messagebox.showinfo("Success", "Admin login successful!")
 
             # Enable buttons for admin functionalities
             self.admin_logged_in = True
             self.enable_admin_buttons()
+            # show directly the register button 
+            self.register_btn.invoke()
 
         else:
             messagebox.showerror("Error", "Invalid admin credentials!")
@@ -127,10 +157,26 @@ class App:
         if self.admin_logged_in:
             # Enable the buttons for admin functionalities
             self.register_btn.pack()
+            self.list_users_btn.pack()
             self.takeAttendance_btn.pack_forget()
             self.admin_btn.pack_forget()
+            self.logout_admin_btn.pack()
 
-            #self.list_users_btn.configure(state="normal")
+
+
+    def logout_admin(self):
+
+        self.takeAttendance_btn.invoke() 
+
+        # Reset the admin login status
+        self.admin_logged_in = False
+
+        # Hide the buttons for admin functionalities
+        self.register_btn.pack_forget()
+        self.list_users_btn.pack_forget()
+        self.takeAttendance_btn.pack()
+        self.admin_btn.pack()
+        self.logout_admin_btn.pack_forget()
 
     def start_working(self):
         timestamp = datetime.now()
@@ -267,21 +313,10 @@ class App:
         # Show a pop-up message indicating successful registration
         messagebox.showinfo("Success", f"{self.current_user_name} is successfully registered in the database!")
 
-        # Go back to the login page
-        self.takeAttendance_btn.invoke()
-        self.hide_admin_buttons()
+        # Go back to the register page
+        self.register_btn.invoke()
+
         
-
-
-    def hide_admin_buttons(self):
-        # Hide the buttons for admin functionalities
-        self.register_btn.pack_forget()
-        self.takeAttendance_btn.pack()
-        self.admin_btn.pack()
-
-
-
-
 
 
     def capture_image(self, name):
@@ -315,7 +350,25 @@ class App:
             print("Error in reading Camera")
 
 
+    def list_users(self):
 
+        self.delete_frameContent()
+
+        # Fetch all users from the MongoDB collection
+        all_users = self.collection.find()
+
+        # Create a Treeview widget (table) within the same window
+        user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name"), show="headings", height=10)
+        user_list_table.heading("User ID", text="User ID")
+        user_list_table.heading("User Name", text="User Name")
+
+        # Add user data to the table
+        for index, user in enumerate(all_users, start=1):
+            user_list_table.insert("", "end", values=(index, user["name"]))
+
+        user_list_table.pack(pady=20, padx=20)
+
+        
     def add_webcam(self, label):
         self.process_webcam(label)
 
