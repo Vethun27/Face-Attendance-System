@@ -23,7 +23,7 @@ class FaceRecognitionUtils:
                     self.known_face_names.append(os.path.splitext(file_name)[0])
 
     def open_camera(self):
-        self.video_capture = cv2.VideoCapture(0)
+        self.video_capture = cv2.VideoCapture(1)
 
     def capture_frame(self):
         if self.video_capture is not None:

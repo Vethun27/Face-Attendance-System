@@ -170,20 +170,22 @@ class App:
             capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
             capture_btn.pack(pady=20)
             
+
+            #put condition to dont let known face register w/ different names 
+
+
+
             # Start the webcam feed
             self.add_webcam(cam_lb, 800, 520)
             
-            # Button to finish the registration
-            finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
-            finish_registration_btn.pack(pady=20)
-
+            
 
     def finish_registration(self):
         # Reset the registration state to False
         self.registration_in_progress = False
         
         # Show a pop-up message indicating successful registration
-        CTkMessagebox(text_color="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
+        CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
         
         # Go back to the login page
         self.takeAttendance_btn.invoke()
@@ -191,32 +193,43 @@ class App:
     def capture_image(self, name):
         ret, frame = self.cap.read()
         
-        if ret:
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect faces in the frame using face_recognition 
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-
-            # Assuming face_locations and face_encodings are obtained from face detection
-            if face_locations and face_encodings:
-                # Assume the first face is the user's face
-                user_face_encoding = face_encodings[0]
-
-
-                user_data = {
-                    "name": name,
-                    "numfeature": list(user_face_encoding),
-                    # Add other relevant data fields
-                }
-                self.collection.insert_one(user_data)
-
-                print(f"User {name} registered in MongoDB!")
-
-            else:
-                print("No face detected. Please try again.")
+        db_user_name = self.find_verified_user()
+        if db_user_name:
+            CTkMessagebox(title="Error, please try again", message=f"This face already exists with the name , {db_user_name}!")
+            self.register_page()
+          
         else:
-            print("Error in reading Camera")
+            if ret:
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Detect faces in the frame using face_recognition 
+                face_locations = face_recognition.face_locations(rgb_frame)
+                face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+                # Assuming face_locations and face_encodings are obtained from face detection
+                if face_locations and face_encodings:
+                    # Assume the first face is the user's face
+                    user_face_encoding = face_encodings[0]
+
+
+                    user_data = {
+                        "name": name,
+                        "numfeature": list(user_face_encoding),
+                        # Add other relevant data fields
+                    }
+                    self.collection.insert_one(user_data)
+
+                    print(f"User {name} registered in MongoDB!")
+
+                    # Button to finish the registration
+                    finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
+                    finish_registration_btn.pack(pady=20)
+
+                else:
+                    print("No face detected. Please try again.")
+            else:
+                print("Error in reading Camera")
 
 
 
