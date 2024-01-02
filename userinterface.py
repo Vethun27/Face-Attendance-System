@@ -41,6 +41,7 @@ class App:
         self.client = pymongo.MongoClient(constants.mongodbHostAdress)
         self.db = self.client[constants.databaseName]
         self.collection_users = self.db["users"]
+        self.collection_attendancy = self.db["attendancy"]
 
 
         self.registration_in_progress = False
@@ -83,39 +84,89 @@ class App:
         self.main_frame.pack(side=ctk.LEFT)
         self.main_frame.pack_propagate(False)
         self.main_frame.configure(height=620, width=1100)
-        
 
 
-    def start_working(self):
+
+
+    def register_attendancy(self, _userId, startOrEnd):
         timestamp = datetime.now()
         formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
-        print("Start Working... Time: " + formatted_timestamp)
 
-        db_user_name = self.find_verified_user()
+        attendany_data = {
+             "_userId": _userId,
+             "time" : formatted_timestamp,
+             "status": startOrEnd
+        }
         
-        if db_user_name:
-            CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!")
+        self.collection_attendancy.insert_one(attendany_data)
+         
+
+    def check_status_before_register_attendancy(self, _userId, statusToCheck):
+
+        if _userId and statusToCheck:
+            
+            query = {"_userId": _userId}
+            if self.collection_attendancy.count_documents(query):
+                user = self.collection_attendancy.find(query)
+                if user:
+                    sort_order = [("time", pymongo.DESCENDING)]
+                    userLastElement = next(user.sort(sort_order).limit(1))
+
+                    if userLastElement and userLastElement["status"] == statusToCheck:
+                        return True
+            else:
+                if(statusToCheck == "End"):
+                    return True
+
+        return False
+        
+         
+
+    def start_working(self):
+        db_user_id = self.find_userID_by_picture()
+        
+        if db_user_id:
+            db_user_name = self.find_userName_by_id(db_user_id)
+            if self.check_status_before_register_attendancy(db_user_id, "End"):
+                self.register_attendancy(db_user_id, 'Start')
+                CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!")
+            else:
+               CTkMessagebox(title="Error", message=f"{db_user_name}, you have already started your work, please end it before restarting", icon="cancel") 
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
 
     
     def end_working(self):
-        timestamp = datetime.now()
-        formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
-        print("End Working... Time: " + formatted_timestamp)
+        db_user_id = self.find_userID_by_picture()
 
-        db_user_name = self.find_verified_user()
-
-        if db_user_name:
-            CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!")
+        if db_user_id:
+            db_user_name = self.find_userName_by_id(db_user_id)
+            if self.check_status_before_register_attendancy(db_user_id, "Start"):
+                self.register_attendancy(db_user_id, 'End')
+                CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!")
+            else:
+                 CTkMessagebox(title="Error", message=f"{db_user_name}, you have already ended your work, please start it before ending", icon="cancel") 
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
      
+
+    def find_userName_by_id(self, _userId):
+
+        if _userId:
+            query = {"_id": _userId}
+
+            user = self.collection_users.find_one(query)
+
+            if user:
+                return user['name']
+            else:
+                return None
+
     
 
-    def find_verified_user(self):
+    def find_userID_by_picture(self):
         # Capture a frame from the camera
         ret, frame = self.cap.read()
 
@@ -136,15 +187,15 @@ class App:
 
                 for user in all_users:
                     # Get the user's name and face encoding from the database
-                    db_user_name = user["name"]
-                    db_face_encoding = np.array(user["numfeature"])
+                    db_user_id = user["_id"]
+                    db_face_encoding = user["numfeature"]
 
                     # Compare the face encodings
                     match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
 
                     if any(match):
                         # At least one matching face found
-                        return db_user_name
+                        return db_user_id
         return None
         
 
@@ -217,6 +268,8 @@ class App:
 
 
 
+
+
     def getFilteredDatesAndTime(self):
         #TODO
         print("Fetch Dates and Time from database")
@@ -262,7 +315,7 @@ class App:
         
     
     def loginUser_filterUserAttendancy(self):
-        db_user_name = self.find_verified_user()
+        db_user_name = self.find_userID_by_picture()
         if db_user_name:
             self.newWindow_filterUserAttendacy(db_user_name)
         else:
