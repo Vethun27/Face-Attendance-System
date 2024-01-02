@@ -15,8 +15,6 @@ import pymongo
 
 
 
-
-
 class App:
     def __init__(self):
 
@@ -156,11 +154,11 @@ class App:
         # Check if the admin is logged in before enabling buttons
         if self.admin_logged_in:
             # Enable the buttons for admin functionalities
-            self.register_btn.pack()
-            self.list_users_btn.pack()
+            self.register_btn.pack(pady=20)
+            self.list_users_btn.pack(pady=20)
             self.takeAttendance_btn.pack_forget()
             self.admin_btn.pack_forget()
-            self.logout_admin_btn.pack()
+            self.logout_admin_btn.pack(pady=20)
 
 
 
@@ -174,8 +172,8 @@ class App:
         # Hide the buttons for admin functionalities
         self.register_btn.pack_forget()
         self.list_users_btn.pack_forget()
-        self.takeAttendance_btn.pack()
-        self.admin_btn.pack()
+        self.takeAttendance_btn.pack(pady=20)
+        self.admin_btn.pack(pady=20)
         self.logout_admin_btn.pack_forget()
 
     def start_working(self):
@@ -351,22 +349,52 @@ class App:
 
 
     def list_users(self):
-
         self.delete_frameContent()
 
         # Fetch all users from the MongoDB collection
         all_users = self.collection.find()
 
-        # Create a Treeview widget (table) within the same window
-        user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name"), show="headings", height=10)
-        user_list_table.heading("User ID", text="User ID")
-        user_list_table.heading("User Name", text="User Name")
+        # Create table within the same window
+        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Actions"), show="headings", height=40)
+
+        # Style for the Treeview widget
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=('Bold', 12))
+        style.configure("Treeview", font=('Arial', 10))
+
+        self.user_list_table.heading("User ID", text="User ID")
+        self.user_list_table.heading("User Name", text="User Name")
+        self.user_list_table.heading("Actions", text="Actions")
+
+        self.user_list_table.column("User ID", minwidth=50, width=200)
+        self.user_list_table.column("User Name", minwidth=100, width=800)
+        self.user_list_table.column("Actions", minwidth=50, width=200)
+
+        # Set a custom cell renderer for the "Actions" column
+        self.user_list_table.heading("Actions", text="Actions", command=lambda: None)  # This line is necessary for the custom renderer to work
+        self.user_list_table.bind("<Button-1>", self.on_tree_click)  # Bind the click event to the custom renderer
 
         # Add user data to the table
         for index, user in enumerate(all_users, start=1):
-            user_list_table.insert("", "end", values=(index, user["name"]))
+            delete_button = ttk.Button(self.user_list_table, text="Delete", command=lambda u=user: self.delete_user(u["_id"]))
+            self.user_list_table.insert("", "end", values=(index, user["name"], delete_button))
 
-        user_list_table.pack(pady=20, padx=20)
+        self.user_list_table.pack(pady=20, padx=20)
+
+    def on_tree_click(self, event):
+        item = self.user_list_table.selection()[0]
+        column = self.user_list_table.identify_column(event.x)
+        if column == "#3":  # Check if the clicked column is the "Actions" column
+            user_id = self.user_list_table.item(item, "values")[0]
+            self.delete_user(user_id)
+
+    def delete_user(self, user_id):
+        # Remove the user from the MongoDB collection
+        self.collection.delete_one({"_id": user_id})
+
+        # Remove the user from the table
+        selected_item = self.user_list_table.selection()[0]
+        self.user_list_table.delete(selected_item)
 
         
     def add_webcam(self, label):
