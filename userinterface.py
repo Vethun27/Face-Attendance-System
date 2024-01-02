@@ -144,11 +144,8 @@ class App:
                     if any(match):
                         # At least one matching face found
                         return db_user_name
-                    else:
-                        # No matching face found
-                        return None
-            else:
-                return None
+        return None
+        
 
 
     
