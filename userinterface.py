@@ -1,4 +1,4 @@
-from tkinter import Tk, TkVersion, messagebox, ttk
+from tkinter import Tk, TkVersion, messagebox, ttk, StringVar, Entry
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import cv2
@@ -9,6 +9,7 @@ import os
 from PIL import Image, ImageTk
 import face_recognition
 import numpy as np
+from tkcalendar import DateEntry 
 import pymongo
 
 
@@ -44,6 +45,27 @@ class App:
         self.collection = self.db["users"]
 
         self.registration_in_progress = False
+
+
+    def validate_date(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
+        if text in '0123456789-':  # Allow only digits, dot, slash, and hyphen
+            parts = value_if_allowed.split('-')
+            if len(parts) == 1:
+                if len(parts[0]) > 2:
+                    return False
+                if len(parts[0]) == 2 and action != 'delete':
+                    value_if_allowed += '-'
+            elif len(parts) == 2:
+                if len(parts[0]) > 2 or len(parts[1]) > 2:
+                    return False
+                if len(parts[1]) == 2 and action != 'delete':
+                    value_if_allowed += '-'
+            elif len(parts) == 3:
+                if len(parts[0]) > 2 or len(parts[1]) > 2 or len(parts[2]) > 4:
+                    return False
+            return True
+        else:
+            return False
 
     def buildFrontend_sidebar(self):
         self.option_frame = ctk.CTkFrame(self.root, fg_color='#292727', bg_color='#292727')
@@ -127,12 +149,14 @@ class App:
     def admin_page(self):
 
 
+        instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
+        instruction_label.pack(pady=(100, 10), padx=10)  # Adjust the pady value to add more space at the top
 
         adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
         adminname.pack(pady=10)
         adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*')
         adminpw.pack(pady=10)
-        login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), bg_color='black', fg_color='white', hover_color='black', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
+        login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
         login_btn.pack(pady=20)
 
     def login_admin(self,adminname,adminpw):
@@ -271,13 +295,31 @@ class App:
    
     def register_page(self):
         self.delete_frameContent()
+
+        # Label to instruct the user
+        instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Employee name", font=('Bold', 15), text_color='white')
+        instruction_label.pack(pady=(50, 10), padx=10)  # Adjust the pady value to add more space at the top
+
         
         # Entry widget to input user name
-        name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=200)
         name.pack(pady=10)
 
+        # Label for birthdate instruction
+        birthdate_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Birthdate (DD-MM-YYYY)",font=('Bold', 15), text_color='white')
+        birthdate_instruction_label.pack(pady=10)
+
+        # StringVar to store the validated date
+        validated_date = StringVar()
+
+        # Validate function for the Entry widget
+        validate_date_func = self.root.register(self.validate_date)
+
+        # Entry widget for birthdate input
+        birthdate = ctk.CTkEntry(self.main_frame, font=('Bold', 15), textvariable=validated_date, validate='key', validatecommand=(validate_date_func, '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W'))
+        birthdate.pack(pady=10)
         # Button to start the registration process
-        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), bg_color='black', fg_color='white', hover_color='black', width=100, height=35, command=lambda: self.start_registration(name.get()))
+        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.start_registration(name.get()))
         start_registration_btn.pack(pady=20)
 
     def start_registration(self, name):
@@ -293,28 +335,12 @@ class App:
             cam_lb.pack(side=ctk.LEFT)
             
             # Button to capture the user's image
-            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
+            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image",  fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.capture_image(name))
             capture_btn.pack(pady=20)
             
             # Start the webcam feed
             self.add_webcam(cam_lb)
-            
-            # Button to finish the registration
-            finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
-            finish_registration_btn.pack(pady=20)
-
-
-    def finish_registration(self):
-        # Reset the registration state to False
-        self.registration_in_progress = False
-        
-        # Show a pop-up message indicating successful registration
-        messagebox.showinfo("Success", f"{self.current_user_name} is successfully registered in the database!")
-
-        # Go back to the register page
-        self.register_btn.invoke()
-
-        
+    
 
 
     def capture_image(self, name):
@@ -340,12 +366,25 @@ class App:
                 }
                 self.collection.insert_one(user_data)
 
+                        # Reset the registration state to False
+                self.registration_in_progress = False
+        
+        # Show a pop-up message indicating successful registration
+                messagebox.showinfo("Success", f"{self.current_user_name} is successfully registered in the database!")
+
+        # Go back to the register page
+                self.register_btn.invoke()
+
                 print(f"User {name} registered in MongoDB!")
 
             else:
                 print("No face detected. Please try again.")
         else:
             print("Error in reading Camera")
+
+
+
+    
 
 
     def list_users(self):
