@@ -40,7 +40,8 @@ class App:
         # Connect to MongoDB
         self.client = pymongo.MongoClient(constants.mongodbHostAdress)
         self.db = self.client[constants.databaseName]
-        self.collection = self.db["users"]
+        self.collection_users = self.db["users"]
+
 
         self.registration_in_progress = False
 
@@ -131,7 +132,7 @@ class App:
                 user_face_encoding = face_encodings[0]
 
                 # Fetch all users from the MongoDB collection
-                all_users = self.collection.find()
+                all_users = self.collection_users.find()
 
                 for user in all_users:
                     # Get the user's name and face encoding from the database
@@ -160,15 +161,15 @@ class App:
             self.delete_frameContent()
          
             # Label to display the camera feed during registration
-            cam_lb = ctk.CTkLabel(self.main_frame, text='', pady=20, padx=20)
-            cam_lb.pack(side=ctk.LEFT)
+            cam_lb = ctk.CTkLabel(self.main_frame, text='')
+            cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
             
             # Button to capture the user's image
             capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
             capture_btn.pack(pady=20)
             
             # Start the webcam feed
-            self.add_webcam(cam_lb, 800, 520)
+            self.add_webcam(cam_lb, 800, 600)
             
             # Button to finish the registration
             finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
@@ -180,7 +181,7 @@ class App:
         self.registration_in_progress = False
         
         # Show a pop-up message indicating successful registration
-        CTkMessagebox(text_color="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
+        CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
         
         # Go back to the login page
         self.takeAttendance_btn.invoke()
@@ -204,9 +205,8 @@ class App:
                 user_data = {
                     "name": name,
                     "numfeature": list(user_face_encoding),
-                    # Add other relevant data fields
                 }
-                self.collection.insert_one(user_data)
+                self.collection_users.insert_one(user_data)
 
                 print(f"User {name} registered in MongoDB!")
 
@@ -217,7 +217,7 @@ class App:
 
 
 
-    def getFilteredDatesAndTIme(self):
+    def getFilteredDatesAndTime(self):
         #TODO
         print("Fetch Dates and Time from database")
 
@@ -253,7 +253,7 @@ class App:
         end_filter_label.pack(side=ctk.TOP, pady=(150, 5), padx=20)
         end_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
 
-        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=self.getFilteredDatesAndTIme, bg_color='green', fg_color='green', hover_color='#2b5c30')
+        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=self.getFilteredDatesAndTime, bg_color='green', fg_color='green', hover_color='#2b5c30')
         filter_button.pack(side=ctk.TOP, anchor='s', pady=(240, 0), padx=20)
 
         
