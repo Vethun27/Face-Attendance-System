@@ -10,6 +10,8 @@ from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 from tkcalendar import DateEntry
 
+#from tkvideoplayer import TkinterVideo
+
 import constants
 
 
@@ -24,7 +26,8 @@ class App:
     def __init__(self):
 
         self.current_user_name = None  #  initialize the attribute name
-
+        self.working_users = []  #  list to track working users
+        self.faq_displayed = False# Track the FAQ display state
         ctk.set_appearance_mode(constants.appApperanceMode)
         ctk.set_default_color_theme(constants.appDefaultColorTheme)
         self.root = ctk.CTk()
@@ -62,7 +65,7 @@ class App:
         # AttendanyInfo Button
         self.attendancyInfo_btn = ctk.CTkButton(self.option_frame, text='Info\nAttendancy', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
                                            command=lambda: self.indicate(self.attendancyInfo_indicate, self.attendancyInfo_page)) 
-        self.attendancyInfo_btn.pack(pady=20)
+        self.attendancyInfo_btn.pack(pady=20) #space around button 
         self.attendancyInfo_btn.configure(state="normal")
         self.attendancyInfo_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.attendancyInfo_indicate.place(x=3, y=100)
@@ -72,42 +75,65 @@ class App:
                                            command=lambda: self.indicate(self.register_indicate, self.register_page)) 
         self.register_btn.pack(pady=20)
         self.register_btn.configure(state="normal")
-        self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
+        self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.register_indicate.place(x=3, y=180)
+
+
+        # Support/FAQs Button
+        self.support_btn = ctk.CTkButton(self.option_frame, text='Support/FAQs', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
+                                           command=lambda: self.indicate(self.support_indicate, self.support_page)) 
+        self.support_btn.pack(pady=20)
+        self.support_btn.configure(state="normal")
+        self.support_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.support_indicate.place(x=3, y=260)
 
 
     
     def buildFrontend_mainFrame(self):
         self.main_frame = ctk.CTkFrame(self.root, border_color='black', border_width=5)
         self.main_frame.pack(side=ctk.LEFT)
-        self.main_frame.pack_propagate(False)
+        self.main_frame.pack_propagate(False)  #prevents the frame from propagating or adjusting its size to fit its content
         self.main_frame.configure(height=620, width=1100)
         
 
 
     def start_working(self):
-        timestamp = datetime.now()
-        formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
-        print("Start Working... Time: " + formatted_timestamp)
+       
 
         db_user_name = self.find_verified_user()
         
         if db_user_name:
-            CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!")
+            if db_user_name not in self.working_users:
+                
+                timestamp = datetime.now()
+                formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
+                print("Start Working... Time: " + formatted_timestamp)
+
+                self.working_users.append(db_user_name)
+                CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!")
+            else:
+                CTkMessagebox(title="Error", message="User already started working!", icon="warning")
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
 
     
     def end_working(self):
-        timestamp = datetime.now()
-        formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
-        print("End Working... Time: " + formatted_timestamp)
+       
 
         db_user_name = self.find_verified_user()
 
         if db_user_name:
-            CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!")
+            if db_user_name in self.working_users:
+                
+                timestamp = datetime.now()
+                formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
+                print("End Working... Time: " + formatted_timestamp)
+
+                self.working_users.remove(db_user_name)
+                CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!")
+            else:
+                CTkMessagebox(title="Error", message="User is not currently working!", icon="warning")
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
@@ -169,11 +195,7 @@ class App:
             # Button to capture the user's image
             capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
             capture_btn.pack(pady=20)
-            
-
-            #put condition to dont let known face register w/ different names 
-
-
+    
 
             # Start the webcam feed
             self.add_webcam(cam_lb, 800, 520)
@@ -193,10 +215,11 @@ class App:
     def capture_image(self, name):
         ret, frame = self.cap.read()
         
-
+        #put condition to dont let known face register w/ different names 
         db_user_name = self.find_verified_user()
         if db_user_name:
             CTkMessagebox(title="Error, please try again", message=f"This face already exists with the name , {db_user_name}!")
+            self.delete_frameContent()
             self.register_page()
           
         else:
@@ -321,19 +344,102 @@ class App:
         start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), bg_color='black', fg_color='white', hover_color='black', width=100, height=35, command=lambda: self.start_registration(name.get()))
         start_registration_btn.pack(pady=20)
 
+    def support_page(self):
+        support_frame = ctk.CTkFrame(self.main_frame)
+        support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="w")
+
+       
+        # FAQ Button
+        FQAs_btn = ctk.CTkButton(support_frame, text="FAQs", bg_color='green', fg_color='green', hover_color='#2b5c30', width=150, height=300, command=self.show_faq)
+        FQAs_btn.pack(side=ctk.LEFT, padx=10, pady=10)
+
+        
+        # Contact Button
+
+        mail_btn = ctk.CTkButton(support_frame, text="Contact via Email", bg_color='red', hover_color='#5c1d1d', fg_color='red', width=150, height=300, command=self.show_mail)
+        mail_btn.pack(side=ctk.RIGHT, padx=10, pady=10)
+
+        self.faq_label = ctk.CTkLabel(support_frame, text='', bg_color='#292727', anchor='s', width=400)
+        self.faq_label.pack(side=ctk.BOTTOM, pady=10, padx=20) 
+
+    def show_mail(self):
+        if not hasattr(self, 'email_entry'):  # Create fields if they don't exist
+            self.email_entry = ctk.CTkEntry(self.main_frame, placeholder_text='Enter Email')
+            self.email_entry.pack(pady=10)
+
+            self.body_entry = ctk.CTkEntry(self.main_frame, placeholder_text='Enter Body')
+            self.body_entry.pack(pady=10)
+
+            self.send_btn = ctk.CTkButton(self.main_frame, text="Send Email", bg_color='green', fg_color='white', hover_color='#2b5c30', command=self.send_mail)
+            self.send_btn.pack(pady=15)
+            
+            
+        # Toggle visibility of email, body, and send button
+        if self.email_entry.winfo_ismapped():
+            self.email_entry.pack_forget()
+            self.body_entry.pack_forget()
+            self.send_btn.pack_forget()
+        else:
+            self.email_entry.pack()
+            self.body_entry.pack()
+            self.send_btn.pack()
 
 
+    def send_mail(self):
+        email = self.email_entry.get()
+        body = self.body_entry.get()
+        
+        print(f"Email: {email}")
+        print(f"Body: {body}")
+        
+         # Clear content in Entry widgets
+        self.email_entry.delete(0, 'end')
+        self.body_entry.delete(0, 'end')
+        # Hide the Entry widgets and the send button after sending the mail
+        self.email_entry.pack_forget()
+        self.body_entry.pack_forget()
+        self.send_btn.pack_forget()
+       
+
+    def show_faq(self):
+        if not self.faq_displayed:
+            faq_text = (
+                "Q: How does the face recognition attendance system work?\n"
+                "A: The system uses facial recognition technology to identify employees based on unique facial features."
+                "\n\nQ: Is the facial recognition system accurate?\n"
+                "A: Yes, the system is designed to be highly accurate in recognizing registered employees."
+                "\n\nQ: How is employee privacy protected?\n"
+                "A: The system only stores facial templates, not actual images, ensuring employee privacy."
+                "\n\nQ: What happens if an employee's face changes (e.g., due to a beard or glasses)?\n"
+                "A: The system is adaptable and can be retrained to accommodate such changes."
+                "\n\nQ: Is the attendance data secure?\n"
+                "A: Yes, the attendance data is encrypted and stored securely to prevent unauthorized access."
+            )
+            self.faq_label.configure(text=faq_text)
+          
+        else:
+            self.faq_label.configure(text='')  # Hide the label
+
+        self.faq_displayed = not self.faq_displayed  # Toggle the display state
+        
+
+
+    #def add_video():
+        
+
+
+    
     def add_webcam(self, label, width, height):
         self.process_webcam(label, width, height)
 
     def process_webcam(self, label, width, height):
-        ret, frame = self.cap.read()
+        ret, frame = self.cap.read() # Read a frame from the webcam
 
         if(ret):
             img_ = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             imgctk = ctk.CTkImage(dark_image=Image.fromarray(img_), size=(width, height))
             label.configure(image=imgctk)
-            label.after(20, self.process_webcam, label, width, height)
+            label.after(20, self.process_webcam, label, width, height)#repeat the process again every 20millisec
         else:
             print("Error in reading Camera")
 
@@ -347,6 +453,7 @@ class App:
         self.takeAttendance_indicate.configure(bg_color='#25282e')
         self.register_indicate.configure(bg_color='#25282e')
         self.attendancyInfo_indicate.configure(bg_color='#25282e')
+        self.support_indicate.configure(bg_color='#25282e')
         
 
     def indicate(self, lb, show_frame):
