@@ -7,9 +7,10 @@ import face_recognition
 import numpy as np
 import pymongo
 from CTkMessagebox import CTkMessagebox
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from tkcalendar import DateEntry
-
+import subprocess
+import sys
 import constants
 
 
@@ -68,9 +69,9 @@ class App:
         self.attendancyInfo_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.attendancyInfo_indicate.place(x=3, y=100)
 
-        # Register Button
+        # Admin Button
         self.register_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
-                                           command=lambda: self.indicate(self.register_indicate, self.register_page)) 
+                                           command=lambda: self.indicate(self.register_indicate, self.admin_page)) 
         self.register_btn.pack(pady=20)
         self.register_btn.configure(state="normal")
         self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
@@ -83,8 +84,37 @@ class App:
         self.main_frame.pack(side=ctk.LEFT)
         self.main_frame.pack_propagate(False)
         self.main_frame.configure(height=620, width=1100)
-        
 
+
+
+    def admin_page(self):
+
+
+        instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
+        instruction_label.pack(pady=(100, 10), padx=10)  # Adjust the pady value to add more space at the top
+
+        adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        adminname.pack(pady=10)
+        adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*')
+        adminpw.pack(pady=10)
+        login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
+        login_btn.pack(pady=20)
+
+    def login_admin(self,adminname,adminpw):
+        admin_username = "admin"  #  admin username
+        admin_password = "admin"  #  admin password
+        if adminname == admin_username and adminpw == admin_password:
+            messagebox.showinfo("Success", "Admin login successful!")
+
+            self.admin_logged_in = True
+            #run the admin script
+            script_path = 'administration.py'
+
+            # Run the other script
+            subprocess.run([sys.executable, script_path])
+
+        else:
+            messagebox.showerror("Error", "Invalid admin credentials!")       
 
     def start_working(self):
         timestamp = datetime.now()
