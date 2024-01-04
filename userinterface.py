@@ -1,7 +1,7 @@
 
 import customtkinter as ctk
 import cv2
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image
 import face_recognition
 import numpy as np
@@ -90,11 +90,13 @@ class App:
 
     def register_attendancy(self, _userId, startOrEnd):
         timestamp = datetime.now()
-        formatted_timestamp = timestamp.strftime("%d.%m.%Y %H:%M:%S")
+        formatted_date = timestamp.strftime("%d.%m.%Y")
+        formatted_time = timestamp.strftime("%H:%M:%S")
 
         attendany_data = {
              "_userId": _userId,
-             "time" : formatted_timestamp,
+             "date": formatted_date,
+             "time" : formatted_time,
              "status": startOrEnd
         }
         
@@ -270,17 +272,44 @@ class App:
 
 
 
-    def getFilteredDatesAndTime(self):
-        #TODO
-        print("Fetch Dates and Time from database")
+    def getFilteredDatesAndTime(self, userId, startDate_filter, endDate_filter):
+        
+        self.delete_content_of_table(self.attendancy_table)
+
+        corrected_start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%y") - timedelta(days=1)
+        start_date = corrected_start_date.strftime("%d.%m.%y")
+        end_date = endDate_filter.get()
+
+        if start_date < end_date:
+        
+            query = {"_userId":userId, "date":{"$gte": start_date, "$lte": end_date}}
+            results = self.collection_attendancy.find(query)
+
+            if self.collection_attendancy.count_documents(query) != 0:
+                for result in results:
+                    dataset = (result["date"], self.find_userName_by_id(userId), " ", result["time"], result["status"]) #add department field
+                    dataset_id = self.attendancy_table.insert("", "end", values=dataset)
+                    if result["status"] == "Start":
+                        self.attendancy_table.tag_configure(f"{dataset_id}", background="green")
+                        self.attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
+                    else:
+                        self.attendancy_table.tag_configure(f"{dataset_id}", background="red")
+                        self.attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
+
+            else:
+                 CTkMessagebox(title="Error", message="No Data found", icon="cancel")
+        else:
+             CTkMessagebox(title="Error", message="Invalid Dates", icon="cancel")
+
+        
 
 
 
-    def newWindow_filterUserAttendacy(self, userName):
+    def newWindow_filterUserAttendacy(self, userId):
         filterUserAttendancy_window = ctk.CTkToplevel(self.root)
         filterUserAttendancy_window.geometry(constants.appGeometry)
         filterUserAttendancy_window.resizable(width=False, height=False)
-        filterUserAttendancy_window.title(f"Attendancy Information of {userName}")
+        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_userName_by_id(userId)}")
         filterUserAttendancy_window.attributes("-topmost", True)
 
         filterUserAttendancy = ctk.CTkFrame(filterUserAttendancy_window)
@@ -289,13 +318,13 @@ class App:
         style = ttk.Style(filterUserAttendancy_window)
         style.theme_use("winnative")
         style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
-        self.table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","attendance"), show="headings",height=300)
-        self.table.heading("date", text="Date")
-        self.table.heading("name", text="Name")
-        self.table.heading("department", text="Department")
-        self.table.heading("time", text="Time")
-        self.table.heading("attendance", text="Start/End")
-        self.table.pack(side=ctk.LEFT)
+        self.attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300)
+        self.attendancy_table.heading("date", text="Date")
+        self.attendancy_table.heading("name", text="Name")
+        self.attendancy_table.heading("department", text="Department")
+        self.attendancy_table.heading("time", text="Time")
+        self.attendancy_table.heading("status", text="Status")
+        self.attendancy_table.pack(side=ctk.LEFT)
 
         start_filter_label = ctk.CTkLabel(filterUserAttendancy, text="Start Date:")
         start_filter_entry = DateEntry(filterUserAttendancy, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE')
@@ -306,18 +335,22 @@ class App:
         end_filter_label.pack(side=ctk.TOP, pady=(150, 5), padx=20)
         end_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
 
-        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=self.getFilteredDatesAndTime, bg_color='green', fg_color='green', hover_color='#2b5c30')
+        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
         filter_button.pack(side=ctk.TOP, anchor='s', pady=(240, 0), padx=20)
 
         
+    def delete_content_of_table(self, table):
+        if(table):
+            for item in table.get_children():
+                table.delete(item)
 
 
         
     
     def loginUser_filterUserAttendancy(self):
-        db_user_name = self.find_userID_by_picture()
-        if db_user_name:
-            self.newWindow_filterUserAttendacy(db_user_name)
+        db_user_id = self.find_userID_by_picture()
+        if db_user_id:
+            self.newWindow_filterUserAttendacy(db_user_id)
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
     
