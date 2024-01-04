@@ -272,9 +272,9 @@ class App:
 
 
 
-    def getFilteredDatesAndTime(self, userId, startDate_filter, endDate_filter):
+    def getFilteredDatesAndTime(self, userId, attendancy_table, startDate_filter, endDate_filter):
         
-        self.delete_content_of_table(self.attendancy_table)
+        self.delete_content_of_table(attendancy_table)
 
         corrected_start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%y") - timedelta(days=1)
         start_date = corrected_start_date.strftime("%d.%m.%y")
@@ -287,14 +287,14 @@ class App:
 
             if self.collection_attendancy.count_documents(query) != 0:
                 for result in results:
-                    dataset = (result["date"], self.find_userName_by_id(userId), " ", result["time"], result["status"]) #add department field
-                    dataset_id = self.attendancy_table.insert("", "end", values=dataset)
+                    dataset = (result["date"], self.find_userName_by_id(userId), " ", result["time"], result["status"]) #TODO: add department field
+                    dataset_id = attendancy_table.insert("", "end", values=dataset)
                     if result["status"] == "Start":
-                        self.attendancy_table.tag_configure(f"{dataset_id}", background="green")
-                        self.attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
+                        attendancy_table.tag_configure(f"{dataset_id}", background="green")
+                        attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
                     else:
-                        self.attendancy_table.tag_configure(f"{dataset_id}", background="red")
-                        self.attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
+                        attendancy_table.tag_configure(f"{dataset_id}", background="red")
+                        attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
 
             else:
                  CTkMessagebox(title="Error", message="No Data found", icon="cancel")
@@ -318,13 +318,13 @@ class App:
         style = ttk.Style(filterUserAttendancy_window)
         style.theme_use("winnative")
         style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
-        self.attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300)
-        self.attendancy_table.heading("date", text="Date")
-        self.attendancy_table.heading("name", text="Name")
-        self.attendancy_table.heading("department", text="Department")
-        self.attendancy_table.heading("time", text="Time")
-        self.attendancy_table.heading("status", text="Status")
-        self.attendancy_table.pack(side=ctk.LEFT)
+        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300)
+        attendancy_table.heading("date", text="Date")
+        attendancy_table.heading("name", text="Name")
+        attendancy_table.heading("department", text="Department")
+        attendancy_table.heading("time", text="Time")
+        attendancy_table.heading("status", text="Status")
+        attendancy_table.pack(side=ctk.LEFT)
 
         start_filter_label = ctk.CTkLabel(filterUserAttendancy, text="Start Date:")
         start_filter_entry = DateEntry(filterUserAttendancy, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE')
@@ -335,7 +335,7 @@ class App:
         end_filter_label.pack(side=ctk.TOP, pady=(150, 5), padx=20)
         end_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
 
-        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
+        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, attendancy_table, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
         filter_button.pack(side=ctk.TOP, anchor='s', pady=(240, 0), padx=20)
 
         
