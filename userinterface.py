@@ -16,7 +16,7 @@ import constants
 
 #TODO: If we send the time for start or end working, we should fetch which time is already registered (end or start)
 #       based on that the user can register his start or end working
-#       if e.g. the start time is the last the element o that user, it should be prevented that the user can register another start time ->  according to that there will be messagebox
+#     if e.g. the start time is the last the element o that user, it should be prevented that the user can register another start time ->  according to that there will be messagebox
 
 
 
