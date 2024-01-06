@@ -9,7 +9,6 @@ def text_to_speech(text, lang='en'):
     pygame.mixer.music.load("end_working.mp3")
     pygame.mixer.music.play()
 
-    # Keep the program running until the music finishes playing
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
 
