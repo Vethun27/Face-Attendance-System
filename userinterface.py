@@ -131,7 +131,7 @@ class App:
             db_user_name = self.find_userName_by_id(db_user_id)
             if self.check_status_before_register_attendancy(db_user_id, "End"):
                 self.register_attendancy(db_user_id, 'Start')
-                CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!")
+                CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!", icon='check')
             else:
                CTkMessagebox(title="Error", message=f"{db_user_name}, you have already started your work, please end it before restarting", icon="cancel") 
         else:
@@ -146,7 +146,7 @@ class App:
             db_user_name = self.find_userName_by_id(db_user_id)
             if self.check_status_before_register_attendancy(db_user_id, "Start"):
                 self.register_attendancy(db_user_id, 'End')
-                CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!")
+                CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!", icon='check')
             else:
                  CTkMessagebox(title="Error", message=f"{db_user_name}, you have already ended your work, please start it before ending", icon="cancel") 
         else:
@@ -316,15 +316,19 @@ class App:
         filterUserAttendancy.pack(pady=20, padx=20, side=ctk.TOP, anchor="nw")
 
         style = ttk.Style(filterUserAttendancy_window)
-        style.theme_use("winnative")
+        style.theme_use("clam")
         style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
-        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300)
+        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300, selectmode='none')
         attendancy_table.heading("date", text="Date")
         attendancy_table.heading("name", text="Name")
         attendancy_table.heading("department", text="Department")
         attendancy_table.heading("time", text="Time")
         attendancy_table.heading("status", text="Status")
         attendancy_table.pack(side=ctk.LEFT)
+
+        sb = ttk.Scrollbar(filterUserAttendancy, orient='vertical', command=attendancy_table.yview)
+        sb.pack(side="right", fill="y")
+        attendancy_table.configure(yscrollcommand=sb.set)
 
         start_filter_label = ctk.CTkLabel(filterUserAttendancy, text="Start Date:")
         start_filter_entry = DateEntry(filterUserAttendancy, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE')
@@ -344,8 +348,8 @@ class App:
             for item in table.get_children():
                 table.delete(item)
 
+ 
 
-        
     
     def loginUser_filterUserAttendancy(self):
         db_user_id = self.find_userID_by_picture()
