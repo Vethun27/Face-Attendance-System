@@ -12,9 +12,8 @@ exports.create = (req, res) => {
     // Create a admin
     const admin = new Admin({
         name:req.body.name,
-        personalnr:req.body.personalnr,
-        password:req.body.password,
-        etat:req.body.etat
+        password:req.body.password
+     
     });
 
     // Save admin in the database
@@ -74,9 +73,8 @@ exports.update = (req, res) => {
     // Find admin and update it with the request body
     Admin.findByIdAndUpdate(req.params.adminId, {
         name:req.body.name,
-        personalnr:req.body.personalnr,
-        password:req.body.password,
-        etat:req.body.etat
+        password:req.body.password
+      
         
     }, {new: true})
     .then(admin => {

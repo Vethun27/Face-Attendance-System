@@ -42,6 +42,8 @@ class App:
         self.db = self.client[constants.databaseName]
         self.collection_users = self.db["users"]
         self.collection_attendancy = self.db["attendancy"]
+        self.collection_admins = self.db["admins"]
+
 
 
         self.registration_in_progress = False
@@ -277,9 +279,10 @@ class App:
         login_btn.pack(pady=20)
 
     def login_admin(self,adminname,adminpw):
-        admin_username = "admin"  #  admin username
-        admin_password = "admin"  #  admin password
-        if adminname == admin_username and adminpw == admin_password:
+        #compare with data in db
+        admin_data = self.collection_admins.find_one({'name': adminname, 'password': adminpw})
+        
+        if admin_data:
             CTkMessagebox(title="Success", message="Admin login successful!",icon="check")
 
             self.admin_logged_in = True
@@ -313,29 +316,35 @@ class App:
         instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Employee name", font=('Bold', 15), text_color='white')
         instruction_label.pack(pady=(50, 10), padx=10)  # Adjust the pady value to add more space at the top
 
-        
         # Entry widget to input user name
         name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=200)
         name.pack(pady=10)
 
+        # Label to instruct department
+        department_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Select The Department", font=('Bold', 15), text_color='white')
+        department_instruction_label.pack(pady=(10))  # Adjust the pady value to add more space at the top
+
+        # Department list (modify this list with your department names)
+        department_options = ["IT", "RH", "LOGISTICS"]
+
+        # Combobox for department selection
+        department_combobox = ttk.Combobox(self.main_frame, values=department_options, font=('Bold', 15), state="readonly")
+        department_combobox.pack(pady=10)
+
         # Label for birthdate instruction
-        birthdate_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Birthdate (DD-MM-YYYY)",font=('Bold', 15), text_color='white')
+        birthdate_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Birthdate", font=('Bold', 15), text_color='white')
         birthdate_instruction_label.pack(pady=10)
 
-        # StringVar to store the validated date
-        validated_date = StringVar()
-
-        # Validate function for the Entry widget
-        validate_date_func = self.root.register(self.validate_date)
-
-        # Entry widget for birthdate input
-        birthdate = ctk.CTkEntry(self.main_frame, font=('Bold', 15), textvariable=validated_date, validate='key', validatecommand=(validate_date_func, '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W'))
+        # DateEntry widget for birthdate input
+        birthdate = DateEntry(self.main_frame, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE', font=('Bold', 15))
         birthdate.pack(pady=10)
+
         # Button to start the registration process
-        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.start_registration(name.get()))
+        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.start_registration(name.get(), department_combobox.get(), birthdate.get()))
         start_registration_btn.pack(pady=20)
 
-    def start_registration(self, name):
+
+    def start_registration(self, name,department_combobox,birthdate):
     
         if name:
             # Set the registration state to True
@@ -348,7 +357,11 @@ class App:
             cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
             
             # Button to capture the user's image
-            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image",  fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.capture_image(name))
+            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.capture_image(name, birthdate, department_combobox))
+
+
+
+
             capture_btn.pack(pady=50)
             
             # Start the webcam feed
@@ -357,7 +370,7 @@ class App:
 
 
 
-    def capture_image(self, name):
+    def capture_image(self, name, birthdate, department):
         ret, frame = self.cap.read()
         
         if ret:
@@ -372,22 +385,23 @@ class App:
                 # Assume the first face is the user's face
                 user_face_encoding = face_encodings[0]
 
-
                 user_data = {
                     "name": name,
                     "numfeature": list(user_face_encoding),
+                    "birthdate": birthdate,
+                    "department": department,
                 }
                 self.collection_users.insert_one(user_data)
                 self.registration_in_progress = False
-        
+
                 # Show a pop-up message indicating successful registration
-                CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
-        
+                CTkMessagebox(title="Success", message=f"{self.current_user_name} is successfully registered in the database!", icon="check")
+
+
                 # Go back to the login page
                 self.register_btn.invoke()
 
-                print(f"User {name} registered in MongoDB!")
-
+                print(f"User {name} registered in MongoDB with Birthdate: {birthdate} and Department: {department}!")
 
             else:
                 print("No face detected. Please try again.")
@@ -402,25 +416,33 @@ class App:
         all_users = self.collection_users.find()
 
         # Create table within the same window
-        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name"), show="headings", height=40)
+        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department"), show="headings", height=40)
 
         # Style for the Treeview widget
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=('Bold', 12))
-        style.configure("Treeview", font=('Arial', 10))
+        style.theme_use("winnative")
+        style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
 
         self.user_list_table.heading("User ID", text="User ID")
         self.user_list_table.heading("User Name", text="User Name")
+        self.user_list_table.heading("Date of Birth", text="Date of Birth")
+        self.user_list_table.heading("Department", text="Department")
 
-        self.user_list_table.column("User ID", minwidth=50, width=200)
-        self.user_list_table.column("User Name", minwidth=100, width=800)
+        self.user_list_table.column("User ID")
+        self.user_list_table.column("User Name")
+        self.user_list_table.column("Date of Birth")
+        self.user_list_table.column("Department")
 
+        for user in all_users:
+            user_id = user.get("_id", "")  # Assuming user_id is stored in "_id" field
+            name = user.get("name", "")
+            birthdate = user.get("birthdate", "")
+            department = user.get("department", "")
 
-        # Add user data to the table
-        for index, user in enumerate(all_users, start=1):
-            self.user_list_table.insert("", "end", values=(index, user["name"]))
+            self.user_list_table.insert("", "end", values=(user_id, name, birthdate, department))
 
         self.user_list_table.pack(pady=20, padx=20)
+
 
 
 

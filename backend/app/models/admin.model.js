@@ -5,15 +5,10 @@ const AdminSchema = mongoose.Schema({
             type: String,
 
     },
-    personalnr: {
-        type: String,
-},
+
     password: {
             type: String,
-    }, 
-    etat: {
-        type: String,
-}
+    }
 
 }, {
     timestamps: true
