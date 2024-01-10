@@ -1,4 +1,6 @@
 
+import tkinter
+from bson import ObjectId
 import pygame.mixer
 import customtkinter as ctk
 import cv2
@@ -416,7 +418,7 @@ class App:
         all_users = self.collection_users.find()
 
         # Create table within the same window
-        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department"), show="headings", height=40)
+        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department", "Action"), show="headings", height=40)
 
         # Style for the Treeview widget
         style = ttk.Style()
@@ -427,23 +429,53 @@ class App:
         self.user_list_table.heading("User Name", text="User Name")
         self.user_list_table.heading("Date of Birth", text="Date of Birth")
         self.user_list_table.heading("Department", text="Department")
+        self.user_list_table.heading("Action", text="Action")
 
         self.user_list_table.column("User ID")
         self.user_list_table.column("User Name")
         self.user_list_table.column("Date of Birth")
         self.user_list_table.column("Department")
+        self.user_list_table.column("Action")
 
         for user in all_users:
-            user_id = user.get("_id", "")  # Assuming user_id is stored in "_id" field
+            user_id = user.get("_id", "") 
             name = user.get("name", "")
             birthdate = user.get("birthdate", "")
             department = user.get("department", "")
 
-            self.user_list_table.insert("", "end", values=(user_id, name, birthdate, department))
+            self.user_list_table.insert("", "end", values=(user_id, name, birthdate, department, "DELETE"), tags=("action_button",))
+
+
+        # Bind the button click event to the delete_user method
+        self.user_list_table.tag_configure("action_button", anchor="center")
+        self.user_list_table.bind("<Button-1>", self.handle_click)
 
         self.user_list_table.pack(pady=20, padx=20)
 
+    def handle_click(self, event):
+        item = self.user_list_table.selection()
+        if item:
+            column = self.user_list_table.identify_column(event.x)
+            if column == "#5":  # Assuming "Action" is the 5th column (0-indexed)
+                user_id = self.user_list_table.item(item, "values")[0]
+                confirmation = tkinter.messagebox.askquestion("Confirmation", "Do you want to delete this user?")
+                if confirmation == "yes":
+                    self.delete_user(user_id)
 
+    def delete_user(self,user_id):
+        print(f"Deleting user with ID: {user_id}")
+
+        user_id = ObjectId(user_id)
+
+        result = self.collection_users.delete_one({"_id":user_id})
+
+        if result.deleted_count > 0:
+            print("User deleted successfully from MongoDB")
+        else:
+            print("User not found or not deleted")
+
+        # Refresh the user list table after deletion
+        self.list_users()
 
 
 
