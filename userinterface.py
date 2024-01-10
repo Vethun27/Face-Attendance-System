@@ -1,22 +1,17 @@
 
+import pygame.mixer
 import customtkinter as ctk
 import cv2
 from datetime import datetime, timedelta
 from PIL import Image
 import face_recognition
-import numpy as np
 import pymongo
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 from tkcalendar import DateEntry
+import hashlib
 
 import constants
-
-
-
-#TODO: If we send the time for start or end working, we should fetch which time is already registered (end or start)
-#       based on that the user can register his start or end working
-#       if e.g. the start time is the last the element o that user, it should be prevented that the user can register another start time ->  according to that there will be messagebox
 
 
 
@@ -42,9 +37,10 @@ class App:
         self.db = self.client[constants.databaseName]
         self.collection_users = self.db["users"]
         self.collection_attendancy = self.db["attendancy"]
-
+        self.collection_admins = self.db["admins"]
 
         self.registration_in_progress = False
+        self.addOneAdminAccountOnce()
 
     def buildFrontend_sidebar(self):
         self.option_frame = ctk.CTkFrame(self.root, fg_color='#292727', bg_color='#292727')
@@ -86,6 +82,23 @@ class App:
         self.main_frame.configure(height=620, width=1100)
 
 
+    
+    # possiblity to create admin accounts 
+    def createAdminAccount(self, username, password):
+        
+        adminAccData = {
+            "username" : username,
+            "password" : hashlib.sha256(password.encode()).hexdigest()
+        }
+        self.collection_admins.insert_one(adminAccData)
+
+    #Adding Admin Account with username "admin" and password "admin" once
+    def addOneAdminAccountOnce(self):
+        query = {"username":"admin"}
+        db_username_admin = self.collection_admins.find_one(query)
+        if db_username_admin != None:
+            self.createAdminAccount("admin", "admin")
+    
 
 
     def register_attendancy(self, _userId, startOrEnd):
