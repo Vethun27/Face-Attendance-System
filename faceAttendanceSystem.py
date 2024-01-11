@@ -234,7 +234,7 @@ class App:
 
 
 
-    def getFilteredDatesAndTime(self, userId, attendancy_table, startDate_filter, endDate_filter):
+    def getFilteredDatesAndTime(self, userId,attendancy_table, startDate_filter, endDate_filter):
         
         self.delete_content_of_table(attendancy_table)
 
@@ -250,7 +250,7 @@ class App:
                 for result in results:
                     date = result[constants.timeStampAttr].strftime("%d.%m.%Y")
                     time = result[constants.timeStampAttr].strftime("%H:%M:%S")
-                    dataset = (date, self.find_dataObj_by_id(userId, constants.nameUserAttr), " ", time, result[constants.statusAttr]) #self.find_dataObj_by_id(userId, constants.departmentAttr)
+                    dataset = (date, self.find_dataObj_by_id(userId, constants.nameUserAttr),self.find_dataObj_by_id(userId, constants.departmentUserAttr) , time, result[constants.statusAttr]) #self.find_dataObj_by_id(userId, constants.departmentAttr)
                     dataset_id = attendancy_table.insert("", "end", values=dataset)
                     if result[constants.statusAttr] == "Start":
                         attendancy_table.tag_configure(f"{dataset_id}", background="green")
@@ -479,15 +479,9 @@ class App:
 
     def capture_image(self, name, birthdate, department):
         ret, frame = self.cap.read()
-                #put condition to dont let known face register w/ different names 
-        db_user_name = self.find_verified_user()
-        if db_user_name:
-            CTkMessagebox(title="Error", message=f"This face already exists with the name , {db_user_name}!", icon="cancel")
 
-            self.delete_frameContent()
-            self.add_user_button.invoke()
         
-        elif ret:
+        if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Detect faces in the frame using face_recognition
