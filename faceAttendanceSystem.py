@@ -6,6 +6,7 @@ import cv2
 from datetime import datetime, timedelta
 from PIL import Image
 import face_recognition
+import numpy as np
 import pygame
 import pymongo
 from CTkMessagebox import CTkMessagebox
@@ -478,11 +479,18 @@ class App:
 
     def capture_image(self, name, birthdate, department):
         ret, frame = self.cap.read()
+                #put condition to dont let known face register w/ different names 
+        db_user_name = self.find_verified_user()
+        if db_user_name:
+            CTkMessagebox(title="Error", message=f"This face already exists with the name , {db_user_name}!", icon="cancel")
+
+            self.delete_frameContent()
+            self.add_user_button.invoke()
         
-        if ret:
+        elif ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect faces in the frame using face_recognition 
+            # Detect faces in the frame using face_recognition
             face_locations = face_recognition.face_locations(rgb_frame)
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
@@ -510,6 +518,43 @@ class App:
         else:
             print("Error in reading Camera")
    
+
+    def find_verified_user(self):
+        # Capture a frame from the camera
+        ret, frame = self.cap.read()
+
+        if ret:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Detect faces in the frame using face_recognition library
+            face_locations = face_recognition.face_locations(rgb_frame)
+            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+            # Assuming face_locations and face_encodings are obtained from face detection
+            if face_locations and face_encodings:
+                # Assume the first face is the user's face
+                user_face_encoding = face_encodings[0]
+
+                # Fetch all users from the MongoDB collection
+                all_users = self.collection_users.find()
+
+                for user in all_users:
+                    # Get the user's name and face encoding from the database
+                    db_user_name = user[constants.nameUserAttr]
+                    db_face_encoding = np.array(user[constants.faceEncodingUserAttr])
+
+                    # Compare the face encodings
+                    match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
+
+                    if any(match):
+                        # At least one matching face found
+                        return db_user_name
+                    else:
+                        # No matching face found
+                        return None
+            else:
+                return None
+
 
     def list_users(self):
         self.delete_frameContent()
