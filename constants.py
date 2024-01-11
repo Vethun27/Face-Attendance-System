@@ -17,17 +17,20 @@ attendancyCollection = "attendancy"
 #Collection Attributes
 idAttr = "_id"
 #adminCollection
-usernameAttr = "username"
-passwordAtrr = "password"
+usernameAdminAttr = "username"
+passwordAdminAtrr = "password"
 
 #userCollection
-nameAttr = "name"
-faceEncodingAttr = "faceEncodings"
-birthdateAttr = "birthdate"
-departmentAttr = "departmentAttr"
+nameUserAttr = "name"
+faceEncodingUserAttr = "faceEncodings"
+birthdateUserAttr = "birthdate"
+departmentUserAttr = "departmentAttr"
 
 #attendancyCollection
 userIdAttr = "_userId"
-dateAttr = "date"
-timeAttr = "time"
+timeStampAttr = "timestamp"
 statusAttr = "status"
+
+#Admin Account
+adminUsername = "admin"
+adminPassword = "admin"

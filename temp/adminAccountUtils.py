@@ -10,8 +10,8 @@ class adminAccount:
         
         #private variables
         self._collection_adminAccounts = database[constants.adminCollection]
-        self._usernameAttr = constants.usernameAttr
-        self._passwordAtrr = constants.passwordAtrr
+        self._usernameAttr = constants.usernameAdminAttr
+        self._passwordAtrr = constants.passwordAdminAtrr
         
         self.addOneAdminAccountOnce("admin", "admin")
 

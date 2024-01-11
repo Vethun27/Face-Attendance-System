@@ -8,7 +8,7 @@ import pymongo
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 from tkcalendar import DateEntry
-
+import hashlib
 
 import constants
 
@@ -37,6 +37,8 @@ class App:
         self.collection_users = self.db[constants.userCollection]
         self.collection_attendancy = self.db[constants.attendancyCollection]
         self.collection_admins = self.db[constants.adminCollection]
+
+        self.addAdminAccountOnce()
 
         self.registration_in_progress = False
 
@@ -85,13 +87,10 @@ class App:
 
     def register_attendancy(self, _userId, startOrEnd):
         timestamp = datetime.now()
-        formatted_date = timestamp.strftime("%d.%m.%Y")
-        formatted_time = timestamp.strftime("%H:%M:%S")
 
         attendancy_data = {
              constants.userIdAttr: _userId,
-             constants.dateAttr: formatted_date,
-             constants.timeAttr : formatted_time,
+             constants.timeStampAttr: timestamp,
              constants.statusAttr: startOrEnd
         }
         
@@ -106,7 +105,7 @@ class App:
             if self.collection_attendancy.count_documents(query):
                 user = self.collection_attendancy.find(query)
                 if user:
-                    sort_order = [(constants.timeAttr, pymongo.DESCENDING)]
+                    sort_order = [(constants.timeStampAttr, pymongo.DESCENDING)]
                     userLastElement = next(user.sort(sort_order).limit(1))
 
                     if userLastElement and userLastElement[constants.statusAttr] == statusToCheck:
@@ -123,7 +122,7 @@ class App:
         db_user_id = self.find_userID_by_picture()
         
         if db_user_id:
-            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameAttr)
+            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "End"):
                 self.register_attendancy(db_user_id, 'Start')
                 CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!", icon='check')
@@ -138,7 +137,7 @@ class App:
         db_user_id = self.find_userID_by_picture()
 
         if db_user_id:
-            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameAttr)
+            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "Start"):
                 self.register_attendancy(db_user_id, 'End')
                 CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!", icon='check')
@@ -182,7 +181,7 @@ class App:
                 for user in all_users:
 
                     db_user_id = user[constants.idAttr]
-                    db_face_encoding = user[constants.faceEncodingAttr]
+                    db_face_encoding = user[constants.faceEncodingUserAttr]
 
                     match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
 
@@ -197,18 +196,19 @@ class App:
         
         self.delete_content_of_table(attendancy_table)
 
-        corrected_start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%y") - timedelta(days=1)
-        start_date = corrected_start_date.strftime("%d.%m.%y")
-        end_date = endDate_filter.get()
-
+        start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%y")
+        end_date =  datetime.strptime(endDate_filter.get(), "%d.%m.%y") + timedelta(days=1)
+ 
         if start_date < end_date:
         
-            query = {constants.userIdAttr:userId, constants.dateAttr:{"$gte": start_date, "$lte": end_date}}
+            query = {constants.userIdAttr:userId, constants.timeStampAttr:{"$gte": start_date, "$lte": end_date}}
             results = self.collection_attendancy.find(query)
 
             if self.collection_attendancy.count_documents(query) != 0:
                 for result in results:
-                    dataset = (result[constants.dateAttr], self.find_dataObj_by_id(userId, constants.nameAttr), self.find_dataObj_by_id(userId, constants.departmentAttr), result[constants.timeAttr], result[constants.statusAttr])
+                    date = result[constants.timeStampAttr].strftime("%d.%m.%Y")
+                    time = result[constants.timeStampAttr].strftime("%H:%M:%S")
+                    dataset = (date, self.find_dataObj_by_id(userId, constants.nameUserAttr), " ", time, result[constants.statusAttr]) #self.find_dataObj_by_id(userId, constants.departmentAttr)
                     dataset_id = attendancy_table.insert("", "end", values=dataset)
                     if result[constants.statusAttr] == "Start":
                         attendancy_table.tag_configure(f"{dataset_id}", background="green")
@@ -222,13 +222,26 @@ class App:
         else:
              CTkMessagebox(title="Error", message="Invalid Dates", icon="cancel")
 
-        
+    
+
+    def clearAttendancyCollection(self ,start_date_entry, end_date_entry):
+
+        start_date = datetime.strptime(start_date_entry.get(), "%d.%m.%y")
+        end_date =  datetime.strptime(end_date_entry.get(), "%d.%m.%y") + timedelta(days=1)
+
+        if start_date < end_date:
+            query = {constants.timeStampAttr:{"$gte": start_date, "$lte": end_date}}
+            self.collection_attendancy.delete_many(query)
+        else:
+            CTkMessagebox(title="Error", message="Invalid Dates", icon="cancel")
+
+
 
     def newWindow_filterUserAttendacy(self, userId):
         filterUserAttendancy_window = ctk.CTkToplevel(self.root)
         filterUserAttendancy_window.geometry(constants.appGeometry)
         filterUserAttendancy_window.resizable(width=False, height=False)
-        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_dataObj_by_id(userId, constants.nameAttr)}")
+        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_dataObj_by_id(userId, constants.nameUserAttr)}")
         filterUserAttendancy_window.attributes("-topmost", True)
 
         filterUserAttendancy = ctk.CTkFrame(filterUserAttendancy_window)
@@ -278,6 +291,40 @@ class App:
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
     
+
+
+    # possiblity to create admin accounts 
+    def createAdminAccount(self, username, password):
+        
+        adminAccData = {
+            constants.usernameAdminAttr : username,
+            constants.passwordAdminAtrr : hashlib.sha256(password.encode()).hexdigest()
+        }
+        self.collection_admins.insert_one(adminAccData)
+
+    #Adding Admin Account with username "admin" and password "admin" once
+    #It will only be created if in the database the admin collection is not already created
+    def addAdminAccountOnce(self):
+        if self.collection_admins.name not in self.db.list_collection_names():
+            self.createAdminAccount(constants.adminUsername, constants.adminPassword)
+
+
+     #login function for admin
+    def loginAdmin(self, userNameInput, passwordInput):
+        query = {
+            constants.usernameAdminAttr : userNameInput,
+            constants.passwordAdminAtrr : hashlib.sha256(passwordInput).hexdigest()
+        }
+
+        adminAccount = self.collection_admins.find_one(query)
+
+        if adminAccount:
+            return True
+        else:
+            return False
+
+
+
 
     def takeAttendance_page(self):
 
@@ -408,8 +455,8 @@ class App:
 
 
                 user_data = {
-                    constants.nameAttr: name,
-                    constants.faceEncodingAttr: list(user_face_encoding),
+                    constants.nameUserAttr: name,
+                    constants.faceEncodingUserAttr: list(user_face_encoding),
                 }
                 self.collection_users.insert_one(user_data)
 

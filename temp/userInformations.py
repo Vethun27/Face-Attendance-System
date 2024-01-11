@@ -14,9 +14,9 @@ class userInformationsFromDb:
         self._faceRecognitionUtils = faceRecognitionUtils()
 
         self._idAttr = constants.idAttr
-        self._encodingsAttr = constants.faceEncodingAttr
-        self._birthdateAttr = constants.birthdateAttr
-        self._departmentAttr = constants.departmentAttr
+        self._encodingsAttr = constants.faceEncodingUserAttr
+        self._birthdateAttr = constants.birthdateUserAttr
+        self._departmentAttr = constants.departmentUserAttr
 
         #public variables
         self.collection_users = database[constants.userCollection]
@@ -59,11 +59,11 @@ class userInformationsFromDb:
 
 
     def find_name_by_id(self, userId):
-        return self._find_dataObj_by_id(userId, constants.nameAttr)
+        return self._find_dataObj_by_id(userId, constants.nameUserAttr)
 
     def find_birthdate_by_id(self, userId):
-        return self._find_dataObj_by_id(userId, constants.birthdateAttr)
+        return self._find_dataObj_by_id(userId, constants.birthdateUserAttr)
 
     def find_department_by_id(self, userId):
-        return self._find_dataObj_by_id(userId, constants.departmentAttr)
+        return self._find_dataObj_by_id(userId, constants.departmentUserAttr)
 
