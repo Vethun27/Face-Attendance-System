@@ -9,6 +9,7 @@ from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 from tkcalendar import DateEntry
 import hashlib
+import ctypes
 
 import constants
 
@@ -477,6 +478,9 @@ class App:
 
 
 if __name__ == "__main__":
+
+    ctypes.windll.shcore.SetProcessDpiAwareness(0)
+
     app = App()
     app.start()
 
