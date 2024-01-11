@@ -1,5 +1,4 @@
 
-import pygame.mixer
 import customtkinter as ctk
 import cv2
 from datetime import datetime, timedelta
@@ -9,7 +8,7 @@ import pymongo
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 from tkcalendar import DateEntry
-import hashlib
+
 
 import constants
 
@@ -35,12 +34,11 @@ class App:
         # Connect to MongoDB
         self.client = pymongo.MongoClient(constants.mongodbHostAdress)
         self.db = self.client[constants.databaseName]
-        self.collection_users = self.db["users"]
-        self.collection_attendancy = self.db["attendancy"]
-        self.collection_admins = self.db["admins"]
+        self.collection_users = self.db[constants.userCollection]
+        self.collection_attendancy = self.db[constants.attendancyCollection]
+        self.collection_admins = self.db[constants.adminCollection]
 
         self.registration_in_progress = False
-        self.addOneAdminAccountOnce()
 
     def buildFrontend_sidebar(self):
         self.option_frame = ctk.CTkFrame(self.root, fg_color='#292727', bg_color='#292727')
@@ -57,7 +55,7 @@ class App:
         self.takeAttendance_indicate =  ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.takeAttendance_indicate.place(x=3, y=20)
 
-        # AttendanyInfo Button
+        # AttendancyInfo Button
         self.attendancyInfo_btn = ctk.CTkButton(self.option_frame, text='Info\nAttendancy', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
                                            command=lambda: self.indicate(self.attendancyInfo_indicate, self.attendancyInfo_page)) 
         self.attendancyInfo_btn.pack(pady=20)
@@ -83,22 +81,6 @@ class App:
 
 
     
-    # possiblity to create admin accounts 
-    def createAdminAccount(self, username, password):
-        
-        adminAccData = {
-            "username" : username,
-            "password" : hashlib.sha256(password.encode()).hexdigest()
-        }
-        self.collection_admins.insert_one(adminAccData)
-
-    #Adding Admin Account with username "admin" and password "admin" once
-    def addOneAdminAccountOnce(self):
-        query = {"username":"admin"}
-        db_username_admin = self.collection_admins.find_one(query)
-        if db_username_admin != None:
-            self.createAdminAccount("admin", "admin")
-    
 
 
     def register_attendancy(self, _userId, startOrEnd):
@@ -106,28 +88,28 @@ class App:
         formatted_date = timestamp.strftime("%d.%m.%Y")
         formatted_time = timestamp.strftime("%H:%M:%S")
 
-        attendany_data = {
-             "_userId": _userId,
-             "date": formatted_date,
-             "time" : formatted_time,
-             "status": startOrEnd
+        attendancy_data = {
+             constants.userIdAttr: _userId,
+             constants.dateAttr: formatted_date,
+             constants.timeAttr : formatted_time,
+             constants.statusAttr: startOrEnd
         }
         
-        self.collection_attendancy.insert_one(attendany_data)
+        self.collection_attendancy.insert_one(attendancy_data)
          
 
     def check_status_before_register_attendancy(self, _userId, statusToCheck):
 
         if _userId and statusToCheck:
             
-            query = {"_userId": _userId}
+            query = {constants.userIdAttr: _userId}
             if self.collection_attendancy.count_documents(query):
                 user = self.collection_attendancy.find(query)
                 if user:
-                    sort_order = [("time", pymongo.DESCENDING)]
+                    sort_order = [(constants.timeAttr, pymongo.DESCENDING)]
                     userLastElement = next(user.sort(sort_order).limit(1))
 
-                    if userLastElement and userLastElement["status"] == statusToCheck:
+                    if userLastElement and userLastElement[constants.statusAttr] == statusToCheck:
                         return True
             else:
                 if(statusToCheck == "End"):
@@ -141,7 +123,7 @@ class App:
         db_user_id = self.find_userID_by_picture()
         
         if db_user_id:
-            db_user_name = self.find_userName_by_id(db_user_id)
+            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameAttr)
             if self.check_status_before_register_attendancy(db_user_id, "End"):
                 self.register_attendancy(db_user_id, 'Start')
                 CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!", icon='check')
@@ -156,7 +138,7 @@ class App:
         db_user_id = self.find_userID_by_picture()
 
         if db_user_id:
-            db_user_name = self.find_userName_by_id(db_user_id)
+            db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameAttr)
             if self.check_status_before_register_attendancy(db_user_id, "Start"):
                 self.register_attendancy(db_user_id, 'End')
                 CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!", icon='check')
@@ -167,121 +149,47 @@ class App:
 
      
 
-    def find_userName_by_id(self, _userId):
+    def find_dataObj_by_id(self, _userId, dataAttr):
 
         if _userId:
-            query = {"_id": _userId}
+            query = {constants.idAttr: _userId}
 
             user = self.collection_users.find_one(query)
 
             if user:
-                return user['name']
-            else:
-                return None
+                if user[dataAttr]:
+                    return user[dataAttr]
+       
+        return None
 
     
 
     def find_userID_by_picture(self):
-        # Capture a frame from the camera
+
         ret, frame = self.cap.read()
 
         if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect faces in the frame using face_recognition library
             face_locations = face_recognition.face_locations(rgb_frame)
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
-            # Assuming face_locations and face_encodings are obtained from face detection
             if face_locations and face_encodings:
-                # Assume the first face is the user's face
                 user_face_encoding = face_encodings[0]
 
-                # Fetch all users from the MongoDB collection
                 all_users = self.collection_users.find()
 
                 for user in all_users:
-                    # Get the user's name and face encoding from the database
-                    db_user_id = user["_id"]
-                    db_face_encoding = user["numfeature"]
 
-                    # Compare the face encodings
+                    db_user_id = user[constants.idAttr]
+                    db_face_encoding = user[constants.faceEncodingAttr]
+
                     match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
 
                     if any(match):
-                        # At least one matching face found
                         return db_user_id
         return None
         
-
-
-    
-
-
-    def start_registration(self, name):
-    
-        if name:
-            # Set the registration state to True
-            self.registration_in_progress = True
-            self.current_user_name = name  # Set the current user name
-            self.delete_frameContent()
-         
-            # Label to display the camera feed during registration
-            cam_lb = ctk.CTkLabel(self.main_frame, text='')
-            cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
-            
-            # Button to capture the user's image
-            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
-            capture_btn.pack(pady=20)
-            
-            # Start the webcam feed
-            self.add_webcam(cam_lb, 800, 600)
-            
-            # Button to finish the registration
-            finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
-            finish_registration_btn.pack(pady=20)
-
-
-    def finish_registration(self):
-        # Reset the registration state to False
-        self.registration_in_progress = False
-        
-        # Show a pop-up message indicating successful registration
-        CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
-        
-        # Go back to the login page
-        self.takeAttendance_btn.invoke()
-
-    def capture_image(self, name):
-        ret, frame = self.cap.read()
-        
-        if ret:
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Detect faces in the frame using face_recognition 
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-
-            # Assuming face_locations and face_encodings are obtained from face detection
-            if face_locations and face_encodings:
-                # Assume the first face is the user's face
-                user_face_encoding = face_encodings[0]
-
-
-                user_data = {
-                    "name": name,
-                    "numfeature": list(user_face_encoding),
-                }
-                self.collection_users.insert_one(user_data)
-
-                print(f"User {name} registered in MongoDB!")
-
-            else:
-                print("No face detected. Please try again.")
-        else:
-            print("Error in reading Camera")
-
-
 
 
 
@@ -295,14 +203,14 @@ class App:
 
         if start_date < end_date:
         
-            query = {"_userId":userId, "date":{"$gte": start_date, "$lte": end_date}}
+            query = {constants.userIdAttr:userId, constants.dateAttr:{"$gte": start_date, "$lte": end_date}}
             results = self.collection_attendancy.find(query)
 
             if self.collection_attendancy.count_documents(query) != 0:
                 for result in results:
-                    dataset = (result["date"], self.find_userName_by_id(userId), " ", result["time"], result["status"]) #TODO: add department field
+                    dataset = (result[constants.dateAttr], self.find_dataObj_by_id(userId, constants.nameAttr), self.find_dataObj_by_id(userId, constants.departmentAttr), result[constants.timeAttr], result[constants.statusAttr])
                     dataset_id = attendancy_table.insert("", "end", values=dataset)
-                    if result["status"] == "Start":
+                    if result[constants.statusAttr] == "Start":
                         attendancy_table.tag_configure(f"{dataset_id}", background="green")
                         attendancy_table.item(dataset_id, tags=(f"{dataset_id}",))
                     else:
@@ -316,13 +224,11 @@ class App:
 
         
 
-
-
     def newWindow_filterUserAttendacy(self, userId):
         filterUserAttendancy_window = ctk.CTkToplevel(self.root)
         filterUserAttendancy_window.geometry(constants.appGeometry)
         filterUserAttendancy_window.resizable(width=False, height=False)
-        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_userName_by_id(userId)}")
+        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_dataObj_by_id(userId, constants.nameAttr)}")
         filterUserAttendancy_window.attributes("-topmost", True)
 
         filterUserAttendancy = ctk.CTkFrame(filterUserAttendancy_window)
@@ -330,8 +236,8 @@ class App:
 
         style = ttk.Style(filterUserAttendancy_window)
         style.theme_use("clam")
-        style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
-        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300, selectmode='none')
+        style.configure("Custom1.Treeview", background="black", fieldbackground="black", foreground="white")
+        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300, selectmode='none', style="Custom1.Treeview")
         attendancy_table.heading("date", text="Date")
         attendancy_table.heading("name", text="Name")
         attendancy_table.heading("department", text="Department")
@@ -354,8 +260,9 @@ class App:
 
         filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, attendancy_table, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
         filter_button.pack(side=ctk.TOP, anchor='s', pady=(240, 0), padx=20)
+    
 
-        
+
     def delete_content_of_table(self, table):
         if(table):
             for item in table.get_children():
@@ -445,6 +352,79 @@ class App:
 
     def start(self):
         self.root.mainloop()
+
+
+
+
+
+    def start_registration(self, name):
+    
+        if name:
+            # Set the registration state to True
+            self.registration_in_progress = True
+            self.current_user_name = name  # Set the current user name
+            self.delete_frameContent()
+         
+            # Label to display the camera feed during registration
+            cam_lb = ctk.CTkLabel(self.main_frame, text='')
+            cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
+            
+            # Button to capture the user's image
+            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
+            capture_btn.pack(pady=20)
+            
+            # Start the webcam feed
+            self.add_webcam(cam_lb, 800, 600)
+            
+            # Button to finish the registration
+            finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
+            finish_registration_btn.pack(pady=20)
+
+
+    def finish_registration(self):
+        # Reset the registration state to False
+        self.registration_in_progress = False
+        
+        # Show a pop-up message indicating successful registration
+        CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
+        
+        # Go back to the login page
+        self.takeAttendance_btn.invoke()
+
+    def capture_image(self, name):
+        ret, frame = self.cap.read()
+        
+        if ret:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Detect faces in the frame using face_recognition 
+            face_locations = face_recognition.face_locations(rgb_frame)
+            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+            # Assuming face_locations and face_encodings are obtained from face detection
+            if face_locations and face_encodings:
+                # Assume the first face is the user's face
+                user_face_encoding = face_encodings[0]
+
+
+                user_data = {
+                    constants.nameAttr: name,
+                    constants.faceEncodingAttr: list(user_face_encoding),
+                }
+                self.collection_users.insert_one(user_data)
+
+                print(f"User {name} registered in MongoDB!")
+
+            else:
+                print("No face detected. Please try again.")
+        else:
+            print("Error in reading Camera")
+
+
+
+
+
+    
 
 
 
