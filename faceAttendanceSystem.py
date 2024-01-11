@@ -1,9 +1,12 @@
 
+import tkinter
+from bson import ObjectId
 import customtkinter as ctk
 import cv2
 from datetime import datetime, timedelta
 from PIL import Image
 import face_recognition
+import pygame
 import pymongo
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
@@ -66,14 +69,45 @@ class App:
         self.attendancyInfo_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
         self.attendancyInfo_indicate.place(x=3, y=100)
 
-        # Register Button
+        # Admin Button
         self.register_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
-                                           command=lambda: self.indicate(self.register_indicate, self.register_page)) 
+                                           command=lambda: self.indicate(self.register_indicate, self.admin_page)) 
         self.register_btn.pack(pady=20)
         self.register_btn.configure(state="normal")
         self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
         self.register_indicate.place(x=3, y=180)
 
+        # Add the "Register User" button (initially disabled)
+        self.add_user_button = ctk.CTkButton(self.option_frame, text='Register User', font=('Bold', 15), fg_color='#292727',
+                                          bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                          corner_radius=0, border_width=0, width=100, height=35,
+                                          command=lambda: self.indicate(self.add_user_indicate, self.register_page))
+        
+        self.add_user_button.configure(state="normal")
+        self.add_user_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.add_user_button.pack_forget()  # Set initial state to "hidden"
+
+
+        # Add the "List Users" button (initially disabled)
+        self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                            corner_radius=0, border_width=0, width=100, height=35,
+                                            command=lambda: self.indicate(self.list_users_indicate,self.list_users))
+        
+        self.list_users_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.list_users_btn.configure(state="normal")
+        self.list_users_btn.pack_forget()  # Set initial state to "hidden"
+
+        # Add the "Back to Main" button (initially disabled)
+        self.logout_admin_btn = ctk.CTkButton(self.option_frame, text='Back to main', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                            corner_radius=0, border_width=0, width=100, height=35,
+                                            command=lambda : self.indicate(self.logout_admin_indicate,self.logout_admin))
+        
+        self.logout_admin_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.logout_admin_btn.configure(state="normal")
+        #self.logout_admin_indicate.place(x=3, y=180)
+        self.logout_admin_btn.pack_forget()  # Set initial state to "hidden"
 
     
     def buildFrontend_mainFrame(self):
@@ -126,6 +160,9 @@ class App:
             db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "End"):
                 self.register_attendancy(db_user_id, 'Start')
+                pygame.mixer.init()
+                pygame.mixer.music.load("resources\soundFiles\start_working.mp3")
+                pygame.mixer.music.play()
                 CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!", icon='check')
             else:
                CTkMessagebox(title="Error", message=f"{db_user_name}, you have already started your work, please end it before restarting", icon="cancel") 
@@ -141,6 +178,9 @@ class App:
             db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "Start"):
                 self.register_attendancy(db_user_id, 'End')
+                pygame.mixer.init()
+                pygame.mixer.music.load("resources\soundFiles\end_working.mp3")
+                pygame.mixer.music.play()
                 CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!", icon='check')
             else:
                  CTkMessagebox(title="Error", message=f"{db_user_name}, you have already ended your work, please start it before ending", icon="cancel") 
@@ -310,21 +350,6 @@ class App:
             self.createAdminAccount(constants.adminUsername, constants.adminPassword)
 
 
-     #login function for admin
-    def loginAdmin(self, userNameInput, passwordInput):
-        query = {
-            constants.usernameAdminAttr : userNameInput,
-            constants.passwordAdminAtrr : hashlib.sha256(passwordInput).hexdigest()
-        }
-
-        adminAccount = self.collection_admins.find_one(query)
-
-        if adminAccount:
-            return True
-        else:
-            return False
-
-
 
 
     def takeAttendance_page(self):
@@ -354,14 +379,218 @@ class App:
         
 
    
+    def admin_page(self):
+
+
+        instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
+        instruction_label.pack(pady=(100, 10), padx=10)  # Adjust the pady value to add more space at the top
+
+        adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        adminname.pack(pady=10)
+        adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*')
+        adminpw.pack(pady=10)
+        login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
+        login_btn.pack(pady=20)
+
+    def login_admin(self,adminname,adminpw):
+
+        query = {
+            constants.usernameAdminAttr : adminname,
+            constants.passwordAdminAtrr : hashlib.sha256((adminpw).encode()).hexdigest()
+        }
+
+        adminAccount = self.collection_admins.find_one(query)
+        
+        if adminAccount:
+
+            #CTkMessagebox(title="Success", message="Admin login successful!",icon="check")
+
+            self.admin_logged_in = True
+            
+
+            # Enable buttons for admin functionalities
+            self.enable_admin_buttons()
+
+            # show directly the register button 
+            self.add_user_button.invoke()
+
+        else:
+            CTkMessagebox(title="Error", message="Invalid admin credentials!", icon="cancel")
+
+
+
+    def enable_admin_buttons(self):
+        # Check if the admin is logged in before enabling buttons
+        if self.admin_logged_in:
+            # Enable the buttons for admin functionalities
+            self.add_user_button.pack(pady=20)
+            self.list_users_btn.pack(pady=20)
+            self.takeAttendance_btn.pack_forget()
+            self.register_btn.pack_forget() #admin button
+            self.attendancyInfo_btn.pack_forget()
+            self.logout_admin_btn.pack(pady=20)    
+
+
     def register_page(self):
-        # Entry widget to input user name
-        name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        self.delete_frameContent()
+
+        instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Employee name", font=('Bold', 15), text_color='white')
+        instruction_label.pack(pady=(50, 10), padx=10) 
+
+        name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=200)
         name.pack(pady=10)
 
-        # Button to start the registration process
-        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), bg_color='black', fg_color='white', hover_color='black', width=100, height=35, command=lambda: self.start_registration(name.get()))
+        # Label to instruct department
+        department_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Select The Department", font=('Bold', 15), text_color='white')
+        department_instruction_label.pack(pady=(10))  
+
+        # Department list 
+        department_options = ["IT", "RH", "LOGISTICS"]
+
+        department_combobox = ttk.Combobox(self.main_frame, values=department_options, font=('Bold', 15), state="readonly")
+        department_combobox.pack(pady=10)
+
+        birthdate_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Birthdate", font=('Bold', 15), text_color='white')
+        birthdate_instruction_label.pack(pady=10)
+
+        birthdate = DateEntry(self.main_frame, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE', font=('Bold', 15))
+        birthdate.pack(pady=10)
+
+        start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.start_registration(name.get(), department_combobox.get(), birthdate.get()))
         start_registration_btn.pack(pady=20)
+
+    def start_registration(self, name,department_combobox,birthdate):
+    
+        if name:
+            self.registration_in_progress = True
+            self.current_user_name = name 
+            self.delete_frameContent()
+         
+            cam_lb = ctk.CTkLabel(self.main_frame, text='')
+            cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
+            
+            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.capture_image(name, birthdate, department_combobox))
+
+            capture_btn.pack(pady=50)
+            
+            self.add_webcam(cam_lb, 800, 600)    
+
+
+    def capture_image(self, name, birthdate, department):
+        ret, frame = self.cap.read()
+        
+        if ret:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Detect faces in the frame using face_recognition 
+            face_locations = face_recognition.face_locations(rgb_frame)
+            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+            if face_locations and face_encodings:
+                user_face_encoding = face_encodings[0]
+
+                user_data = {
+                    constants.nameUserAttr: name,
+                    constants.faceEncodingUserAttr: list(user_face_encoding),
+                    constants.birthdateUserAttr : birthdate,
+                    constants.departmentUserAttr : department,
+                }
+                self.collection_users.insert_one(user_data)
+                self.registration_in_progress = False
+
+                CTkMessagebox(title="Success", message=f"{self.current_user_name} is successfully registered in the database!", icon="check")
+
+
+                self.list_users_btn.invoke()
+
+                print(f"User {name} registered in MongoDB with Birthdate: {birthdate} and Department: {department}!")
+
+            else:
+                print("No face detected. Please try again.")
+        else:
+            print("Error in reading Camera")
+   
+
+    def list_users(self):
+        self.delete_frameContent()
+
+        # Fetch all users from the MongoDB 
+        all_users = self.collection_users.find()
+
+        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department", "Action"), show="headings", height=40)
+
+        style = ttk.Style()
+        style.theme_use("winnative")
+        style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
+
+        self.user_list_table.heading("User ID", text="User ID")
+        self.user_list_table.heading("User Name", text="User Name")
+        self.user_list_table.heading("Date of Birth", text="Date of Birth")
+        self.user_list_table.heading("Department", text="Department")
+        self.user_list_table.heading("Action", text="Action")
+
+        self.user_list_table.column("User ID")
+        self.user_list_table.column("User Name")
+        self.user_list_table.column("Date of Birth")
+        self.user_list_table.column("Department")
+        self.user_list_table.column("Action")
+
+        for user in all_users:
+            user_id = user.get("_id", "") 
+            name = user.get(constants.nameUserAttr, "")
+            birthdate = user.get(constants.birthdateUserAttr, "")
+            department = user.get(constants.departmentUserAttr, "")
+
+            self.user_list_table.insert("", "end", values=(user_id, name, birthdate, department, "DELETE"), tags=("action_button",))
+
+
+        self.user_list_table.tag_configure("action_button", anchor="center")
+        self.user_list_table.bind("<Button-1>", self.handle_click)
+
+        self.user_list_table.pack(pady=20, padx=20)
+
+    def handle_click(self, event):
+        item = self.user_list_table.selection()
+        if item:
+            column = self.user_list_table.identify_column(event.x)
+            if column == "#5":  
+                user_id = self.user_list_table.item(item, "values")[0]
+                confirmation = tkinter.messagebox.askquestion("Confirmation", "Do you want to delete this user?")
+                if confirmation == "yes":
+                    self.delete_user(user_id)
+
+    def delete_user(self,user_id):
+        print(f"Deleting user with ID: {user_id}")
+
+        user_id = ObjectId(user_id)
+
+        result = self.collection_users.delete_one({"_id":user_id})
+
+        if result.deleted_count > 0:
+            print("User deleted successfully from MongoDB")
+        else:
+            print("User not found or not deleted")
+
+        # Refresh the user list table after deletion
+        self.list_users()
+
+
+
+    def logout_admin(self):
+
+        self.takeAttendance_btn.invoke() 
+
+        # Reset the admin login status
+        self.admin_logged_in = False
+
+        # Hide the buttons for admin functionalities
+        self.add_user_button.pack_forget()
+        self.list_users_btn.pack_forget()
+        self.takeAttendance_btn.pack(pady=20)
+        self.attendancyInfo_btn.pack(pady=20)
+        self.register_btn.pack(pady=20)
+        self.logout_admin_btn.pack_forget()
+
 
 
 
@@ -402,77 +631,6 @@ class App:
         self.root.mainloop()
 
 
-
-
-
-    def start_registration(self, name):
-    
-        if name:
-            # Set the registration state to True
-            self.registration_in_progress = True
-            self.current_user_name = name  # Set the current user name
-            self.delete_frameContent()
-         
-            # Label to display the camera feed during registration
-            cam_lb = ctk.CTkLabel(self.main_frame, text='')
-            cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
-            
-            # Button to capture the user's image
-            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=lambda: self.capture_image(name))
-            capture_btn.pack(pady=20)
-            
-            # Start the webcam feed
-            self.add_webcam(cam_lb, 800, 600)
-            
-            # Button to finish the registration
-            finish_registration_btn = ctk.CTkButton(self.main_frame, text="Finish Registration", bg_color='#158aff', fg_color='white', hover_color='#333232', width=100, height=35, command=self.finish_registration)
-            finish_registration_btn.pack(pady=20)
-
-
-    def finish_registration(self):
-        # Reset the registration state to False
-        self.registration_in_progress = False
-        
-        # Show a pop-up message indicating successful registration
-        CTkMessagebox(title="Success", message= f"{self.current_user_name} is successfully registered in the database!", icon="check")
-        
-        # Go back to the login page
-        self.takeAttendance_btn.invoke()
-
-    def capture_image(self, name):
-        ret, frame = self.cap.read()
-        
-        if ret:
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Detect faces in the frame using face_recognition 
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-
-            # Assuming face_locations and face_encodings are obtained from face detection
-            if face_locations and face_encodings:
-                # Assume the first face is the user's face
-                user_face_encoding = face_encodings[0]
-
-
-                user_data = {
-                    constants.nameUserAttr: name,
-                    constants.faceEncodingUserAttr: list(user_face_encoding),
-                }
-                self.collection_users.insert_one(user_data)
-
-                print(f"User {name} registered in MongoDB!")
-
-            else:
-                print("No face detected. Please try again.")
-        else:
-            print("Error in reading Camera")
-
-
-
-
-
-    
 
 
 
