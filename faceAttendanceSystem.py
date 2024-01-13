@@ -1,16 +1,14 @@
-
-import tkinter
 from bson import ObjectId
 import customtkinter as ctk
 import cv2
 from datetime import datetime, timedelta
 from PIL import Image
 import face_recognition
-import numpy as np
 import pygame
 import pymongo
 from CTkMessagebox import CTkMessagebox
-from tkinter import ttk
+from tkinter import ttk, filedialog
+import csv
 from tkcalendar import DateEntry
 import hashlib
 import ctypes
@@ -34,7 +32,7 @@ class App:
 
         self.buildFrontend_sidebar()
         self.buildFrontend_mainFrame()
-        self.takeAttendance_btn.invoke()  #starts the take Attendancy directly after App start
+        self.buildFrontend_sidebar_mainPage() #create initially the mainPage sidebar
         
         # Connect to MongoDB
         self.client = pymongo.MongoClient(constants.mongodbHostAdress)
@@ -45,7 +43,8 @@ class App:
 
         self.addAdminAccountOnce()
 
-        self.registration_in_progress = False
+
+
 
     def buildFrontend_sidebar(self):
         self.option_frame = ctk.CTkFrame(self.root, fg_color='#292727', bg_color='#292727')
@@ -53,64 +52,7 @@ class App:
         self.option_frame.pack_propagate(False)
         self.option_frame.configure(height=620, width=150)
 
-        #Take Attendancy Button
-        self.takeAttendance_btn = ctk.CTkButton(self.option_frame,text='Take\nAttendancy',font=('Bold', 15),fg_color='#292727',bg_color='#292727',text_color='#158aff',hover_color='#333232',corner_radius=0,border_width=0,width=150,height=35,
-            command=lambda: self.indicate(self.takeAttendance_indicate, self.takeAttendance_page))
 
-        self.takeAttendance_btn.pack(pady=20)
-        self.takeAttendance_btn.configure(state="normal")
-        self.takeAttendance_indicate =  ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.takeAttendance_indicate.place(x=3, y=20)
-
-        # AttendancyInfo Button
-        self.attendancyInfo_btn = ctk.CTkButton(self.option_frame, text='Info\nAttendancy', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
-                                           command=lambda: self.indicate(self.attendancyInfo_indicate, self.attendancyInfo_page)) 
-        self.attendancyInfo_btn.pack(pady=20)
-        self.attendancyInfo_btn.configure(state="normal")
-        self.attendancyInfo_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.attendancyInfo_indicate.place(x=3, y=100)
-
-        # Admin Button
-        self.register_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
-                                           command=lambda: self.indicate(self.register_indicate, self.admin_page)) 
-        self.register_btn.pack(pady=20)
-        self.register_btn.configure(state="normal")
-        self.register_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
-        self.register_indicate.place(x=3, y=180)
-
-        # Add the "Register User" button (initially disabled)
-        self.add_user_button = ctk.CTkButton(self.option_frame, text='Register User', font=('Bold', 15), fg_color='#292727',
-                                          bg_color='#292727', text_color='#158aff', hover_color='#333232',
-                                          corner_radius=0, border_width=0, width=100, height=35,
-                                          command=lambda: self.indicate(self.add_user_indicate, self.register_page))
-        
-        self.add_user_button.configure(state="normal")
-        self.add_user_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.add_user_button.pack_forget()  # Set initial state to "hidden"
-
-
-        # Add the "List Users" button (initially disabled)
-        self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727',
-                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
-                                            corner_radius=0, border_width=0, width=100, height=35,
-                                            command=lambda: self.indicate(self.list_users_indicate,self.list_users))
-        
-        self.list_users_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.list_users_btn.configure(state="normal")
-        self.list_users_btn.pack_forget()  # Set initial state to "hidden"
-
-        # Add the "Back to Main" button (initially disabled)
-        self.logout_admin_btn = ctk.CTkButton(self.option_frame, text='Back to main', font=('Bold', 15), fg_color='#292727',
-                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
-                                            corner_radius=0, border_width=0, width=100, height=35,
-                                            command=lambda : self.indicate(self.logout_admin_indicate,self.logout_admin))
-        
-        self.logout_admin_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
-        self.logout_admin_btn.configure(state="normal")
-        #self.logout_admin_indicate.place(x=3, y=180)
-        self.logout_admin_btn.pack_forget()  # Set initial state to "hidden"
-
-    
     def buildFrontend_mainFrame(self):
         self.main_frame = ctk.CTkFrame(self.root, border_color='black', border_width=5)
         self.main_frame.pack(side=ctk.LEFT)
@@ -118,6 +60,84 @@ class App:
         self.main_frame.configure(height=620, width=1100)
 
 
+    def buildFrontend_sidebar_mainPage(self):
+        
+        #Take Attendancy Button
+        self.takeAttendance_btn = ctk.CTkButton(self.option_frame,text='Take\nAttendancy',font=('Bold', 15),fg_color='#292727',bg_color='#292727',text_color='#158aff',hover=False,corner_radius=0,border_width=0,width=150,height=35,
+            command=lambda: self.indicate(self.takeAttendance_indicate, self.hide_indicators_mainPage, self.takeAttendance_page))
+        self.takeAttendance_btn.pack(pady=20)
+        self.takeAttendance_indicate =  ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.takeAttendance_indicate.place(x=3, y=20)
+
+        # AttendancyInfo Button
+        self.attendancyInfo_btn = ctk.CTkButton(self.option_frame, text='Info\nAttendancy', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover=False, corner_radius=0, border_width=0, width=150, height=35,
+                                           command=lambda: self.indicate(self.attendancyInfo_indicate, self.hide_indicators_mainPage, self.attendancyInfo_page)) 
+        self.attendancyInfo_btn.pack(pady=20)
+        self.attendancyInfo_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.attendancyInfo_indicate.place(x=3, y=100)
+
+        # Admin Button
+        self.register_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover=False, corner_radius=0, border_width=0, width=150, height=35,
+                                           command=lambda: self.indicate(self.admin_indicate, self.hide_indicators_mainPage, self.admin_page)) 
+        self.register_btn.pack(pady=20)
+        self.admin_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
+        self.admin_indicate.place(x=3, y=180)
+
+        self.takeAttendance_btn.invoke()  #invoke takeAttendance Button after building sidebar in main page
+
+
+    
+    
+    def buildFrontend_sidebar_adminPage(self):
+
+        #Add user button
+        self.add_user_button = ctk.CTkButton(self.option_frame, text='Register User', font=('Bold', 15), fg_color='#292727',
+                                          bg_color='#292727', text_color='#158aff', hover=False,
+                                          corner_radius=0, border_width=0, width=150, height=35,
+                                          command=lambda: self.indicate(self.add_user_indicate, self.hide_indicators_adminPage, self.register_page))
+        self.add_user_button.pack(pady=20)
+        self.add_user_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
+        self.add_user_indicate.place(x=3, y=20)
+
+        #List Users Button
+        self.list_users_btn = ctk.CTkButton(self.option_frame, text='List Users', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover=False,
+                                            corner_radius=0, border_width=0, width=150, height=35,
+                                            command=lambda: self.indicate(self.list_users_indicate, self.hide_indicators_adminPage ,self.list_users))
+    
+        self.list_users_btn.pack(pady=20)
+        self.list_users_indicate= ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
+        self.list_users_indicate.place(x=3, y=95)
+
+        #Back to Main Button
+        self.logout_admin_btn = ctk.CTkButton(self.option_frame, text='Back to main', font=('Bold', 15), fg_color='#292727',
+                                            bg_color='#292727', text_color='#158aff', hover_color='#333232',
+                                            corner_radius=0, border_width=0, width=150, height=35,
+                                            command=self.logout_admin)
+        
+        self.logout_admin_btn.pack(pady=20)
+
+        self.add_user_button.invoke()  #invoke add_user_button Button after building sidebar in admin page
+
+
+
+
+
+    # possiblity to create admin accounts 
+    def createAdminAccount(self, username, password):
+        
+        adminAccData = {
+            constants.usernameAdminAttr : username,
+            constants.passwordAdminAtrr : hashlib.sha256(password.encode()).hexdigest()
+        }
+        self.collection_admins.insert_one(adminAccData)
+
+
+    #Adding Admin Account with username "admin" and password "admin" once
+    #It will only be created if in the database the admin collection is not already created
+    def addAdminAccountOnce(self):
+        if self.collection_admins.name not in self.db.list_collection_names():
+            self.createAdminAccount(constants.adminUsername, constants.adminPassword)
     
 
 
@@ -132,6 +152,7 @@ class App:
         
         self.collection_attendancy.insert_one(attendancy_data)
          
+
 
     def check_status_before_register_attendancy(self, _userId, statusToCheck):
 
@@ -151,8 +172,15 @@ class App:
                     return True
 
         return False
-        
-         
+
+
+
+    def playSoundInTakingAttendancy(self, filename):
+        pygame.mixer.init()
+        pygame.mixer.music.load(filename)
+        pygame.mixer.music.play()
+
+    
 
     def start_working(self):
         db_user_id = self.find_userID_by_picture()
@@ -161,9 +189,7 @@ class App:
             db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "End"):
                 self.register_attendancy(db_user_id, 'Start')
-                pygame.mixer.init()
-                pygame.mixer.music.load("resources\soundFiles\start_working.mp3")
-                pygame.mixer.music.play()
+                self.playSoundInTakingAttendancy(constants.startWorkingSound)
                 CTkMessagebox(title="Welcome", message=f"Welcome to work, {db_user_name}!", icon='check')
             else:
                CTkMessagebox(title="Error", message=f"{db_user_name}, you have already started your work, please end it before restarting", icon="cancel") 
@@ -179,9 +205,7 @@ class App:
             db_user_name = self.find_dataObj_by_id(db_user_id, constants.nameUserAttr)
             if self.check_status_before_register_attendancy(db_user_id, "Start"):
                 self.register_attendancy(db_user_id, 'End')
-                pygame.mixer.init()
-                pygame.mixer.music.load("resources\soundFiles\end_working.mp3")
-                pygame.mixer.music.play()
+                self.playSoundInTakingAttendancy(constants.endWorkingSound)
                 CTkMessagebox(title="Goodbye", message=f"Goodbye, {db_user_name}!", icon='check')
             else:
                  CTkMessagebox(title="Error", message=f"{db_user_name}, you have already ended your work, please start it before ending", icon="cancel") 
@@ -233,13 +257,31 @@ class App:
         
 
 
+    def saveAttendancyInfoAsCSV(self, table, rootWindow):
+
+        if not table.get_children():
+            CTkMessagebox(title="Error", message="No Data in table to download as CSV", icon="cancel")
+            return
+
+        filepath = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], parent=rootWindow)
+        headings = [table.heading(column_id)['text'] for column_id in table["columns"]]
+        if filepath:
+            with open(filepath, mode='w', newline='') as file:
+                writer = csv.writer(file)
+
+                writer.writerow(headings)
+
+                for item in table.get_children():
+                    writer.writerow(table.item(item, option="values"))
+            print(f"CSV file saved to: {filepath}")
+
 
     def getFilteredDatesAndTime(self, userId,attendancy_table, startDate_filter, endDate_filter):
         
         self.delete_content_of_table(attendancy_table)
 
-        start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%y")
-        end_date =  datetime.strptime(endDate_filter.get(), "%d.%m.%y") + timedelta(days=1)
+        start_date = datetime.strptime(startDate_filter.get(), "%d.%m.%Y")
+        end_date =  datetime.strptime(endDate_filter.get(), "%d.%m.%Y") + timedelta(days=1)
  
         if start_date < end_date:
         
@@ -265,11 +307,12 @@ class App:
              CTkMessagebox(title="Error", message="Invalid Dates", icon="cancel")
 
     
-
+    #Currently not in use, but after extension of the userinterface to two datepickers, this function can be used
+    #to clear the attendancy collection
     def clearAttendancyCollection(self ,start_date_entry, end_date_entry):
 
-        start_date = datetime.strptime(start_date_entry.get(), "%d.%m.%y")
-        end_date =  datetime.strptime(end_date_entry.get(), "%d.%m.%y") + timedelta(days=1)
+        start_date = datetime.strptime(start_date_entry.get(), "%d.%m.%Y")
+        end_date =  datetime.strptime(end_date_entry.get(), "%d.%m.%Y") + timedelta(days=1)
 
         if start_date < end_date:
             query = {constants.timeStampAttr:{"$gte": start_date, "$lte": end_date}}
@@ -279,20 +322,21 @@ class App:
 
 
 
-    def newWindow_filterUserAttendacy(self, userId):
-        filterUserAttendancy_window = ctk.CTkToplevel(self.root)
-        filterUserAttendancy_window.geometry(constants.appGeometry)
-        filterUserAttendancy_window.resizable(width=False, height=False)
-        filterUserAttendancy_window.title(f"Attendancy Information of {self.find_dataObj_by_id(userId, constants.nameUserAttr)}")
-        filterUserAttendancy_window.attributes("-topmost", True)
+    def newWindow_attendancyInfo(self, userId):
+        attendancyInfo_window = ctk.CTkToplevel(self.root)
+        attendancyInfo_window.geometry(constants.appGeometry)
+        attendancyInfo_window.resizable(width=False, height=False)
+        attendancyInfo_window.title(f"Attendancy Information of {self.find_dataObj_by_id(userId, constants.nameUserAttr)}")
+        attendancyInfo_window.attributes("-topmost", True)
 
-        filterUserAttendancy = ctk.CTkFrame(filterUserAttendancy_window)
-        filterUserAttendancy.pack(pady=20, padx=20, side=ctk.TOP, anchor="nw")
+        attendancyInfo_frame = ctk.CTkFrame(attendancyInfo_window)
+        attendancyInfo_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="nw")
 
-        style = ttk.Style(filterUserAttendancy_window)
+        style = ttk.Style(attendancyInfo_window)
         style.theme_use("clam")
         style.configure("Custom1.Treeview", background="black", fieldbackground="black", foreground="white")
-        attendancy_table = ttk.Treeview(filterUserAttendancy, columns=("date", "name", "department", "time","status"), show="headings",height=300, selectmode='none', style="Custom1.Treeview")
+        attendancy_table = ttk.Treeview(attendancyInfo_frame, columns=("date", "name", "department", "time","status"), show="headings",height=300, selectmode='none', style="Custom1.Treeview")
+        
         attendancy_table.heading("date", text="Date")
         attendancy_table.heading("name", text="Name")
         attendancy_table.heading("department", text="Department")
@@ -300,21 +344,26 @@ class App:
         attendancy_table.heading("status", text="Status")
         attendancy_table.pack(side=ctk.LEFT)
 
-        sb = ttk.Scrollbar(filterUserAttendancy, orient='vertical', command=attendancy_table.yview)
+        sb = ttk.Scrollbar(attendancyInfo_frame, orient='vertical', command=attendancy_table.yview)
         sb.pack(side="right", fill="y")
         attendancy_table.configure(yscrollcommand=sb.set)
 
-        start_filter_label = ctk.CTkLabel(filterUserAttendancy, text="Start Date:")
-        start_filter_entry = DateEntry(filterUserAttendancy, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE')
-        end_filter_label = ctk.CTkLabel(filterUserAttendancy, text="End Date:")
-        end_filter_entry = DateEntry(filterUserAttendancy, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE')
+        start_filter_label = ctk.CTkLabel(attendancyInfo_frame, text="Start Date:")
+        start_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy')
+        end_filter_label = ctk.CTkLabel(attendancyInfo_frame, text="End Date:")
+        end_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy')
         start_filter_label.pack(side=ctk.TOP, pady=(30,5), padx=20)
         start_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
         end_filter_label.pack(side=ctk.TOP, pady=(150, 5), padx=20)
         end_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
 
-        filter_button = ctk.CTkButton(filterUserAttendancy, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, attendancy_table, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
-        filter_button.pack(side=ctk.TOP, anchor='s', pady=(240, 0), padx=20)
+        filter_button = ctk.CTkButton(attendancyInfo_frame, text="Filter", command=lambda:self.getFilteredDatesAndTime(userId, attendancy_table, start_filter_entry, end_filter_entry), bg_color='green', fg_color='green', hover_color='#2b5c30')
+        filter_button.pack(side=ctk.TOP, anchor='s', pady=(190, 0), padx=10)
+
+        csvDownlaod_button = ctk.CTkButton(attendancyInfo_frame, text="Download Table\nas CSV", command=lambda:self.saveAttendancyInfoAsCSV(attendancy_table, attendancyInfo_window), bg_color='blue', fg_color='blue', hover_color='#09213d')
+        csvDownlaod_button.pack(side=ctk.TOP, anchor='s', pady=(20, 0), padx=10)
+
+        
     
 
 
@@ -329,27 +378,10 @@ class App:
     def loginUser_filterUserAttendancy(self):
         db_user_id = self.find_userID_by_picture()
         if db_user_id:
-            self.newWindow_filterUserAttendacy(db_user_id)
+            self.newWindow_attendancyInfo(db_user_id)
         else:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
     
-
-
-    # possiblity to create admin accounts 
-    def createAdminAccount(self, username, password):
-        
-        adminAccData = {
-            constants.usernameAdminAttr : username,
-            constants.passwordAdminAtrr : hashlib.sha256(password.encode()).hexdigest()
-        }
-        self.collection_admins.insert_one(adminAccData)
-
-    #Adding Admin Account with username "admin" and password "admin" once
-    #It will only be created if in the database the admin collection is not already created
-    def addAdminAccountOnce(self):
-        if self.collection_admins.name not in self.db.list_collection_names():
-            self.createAdminAccount(constants.adminUsername, constants.adminPassword)
-
 
 
 
@@ -382,9 +414,8 @@ class App:
    
     def admin_page(self):
 
-
         instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
-        instruction_label.pack(pady=(100, 10), padx=10)  # Adjust the pady value to add more space at the top
+        instruction_label.pack(pady=(100, 10), padx=10)  
 
         adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
         adminname.pack(pady=10)
@@ -392,6 +423,8 @@ class App:
         adminpw.pack(pady=10)
         login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
         login_btn.pack(pady=20)
+
+
 
     def login_admin(self,adminname,adminpw):
 
@@ -403,88 +436,58 @@ class App:
         adminAccount = self.collection_admins.find_one(query)
         
         if adminAccount:
-
-            #CTkMessagebox(title="Success", message="Admin login successful!",icon="check")
-
-            self.admin_logged_in = True
-            
-
-            # Enable buttons for admin functionalities
-            self.enable_admin_buttons()
-
-            # show directly the register button 
-            self.add_user_button.invoke()
+            self.delete_optionFrameContent()
+            self.buildFrontend_sidebar_adminPage()
 
         else:
             CTkMessagebox(title="Error", message="Invalid admin credentials!", icon="cancel")
 
-
-
-    def enable_admin_buttons(self):
-        # Check if the admin is logged in before enabling buttons
-        if self.admin_logged_in:
-            # Enable the buttons for admin functionalities
-            self.add_user_button.pack(pady=20)
-            self.list_users_btn.pack(pady=20)
-            self.takeAttendance_btn.pack_forget()
-            self.register_btn.pack_forget() #admin button
-            self.attendancyInfo_btn.pack_forget()
-            self.logout_admin_btn.pack(pady=20)    
-
+ 
 
     def register_page(self):
-        self.delete_frameContent()
+        self.delete_mainFrameContent()
 
         instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Employee name", font=('Bold', 15), text_color='white')
-        instruction_label.pack(pady=(50, 10), padx=10) 
-
+        instruction_label.pack(pady=(50, 0), padx=10) 
         name = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=200)
-        name.pack(pady=10)
+        name.pack(pady=(10,30))
 
-        # Label to instruct department
         department_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Select The Department", font=('Bold', 15), text_color='white')
-        department_instruction_label.pack(pady=(10))  
-
-        # Department list 
-        department_options = ["IT", "RH", "LOGISTICS"]
-
-        department_combobox = ttk.Combobox(self.main_frame, values=department_options, font=('Bold', 15), state="readonly")
-        department_combobox.pack(pady=10)
+        department_instruction_label.pack(pady=(10,0))  
+        department_combobox = ttk.Combobox(self.main_frame, values=constants.department_options, font=('Bold', 15), state="readonly")
+        department_combobox.pack(pady=(10,30))
 
         birthdate_instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Birthdate", font=('Bold', 15), text_color='white')
-        birthdate_instruction_label.pack(pady=10)
-
-        birthdate = DateEntry(self.main_frame, width=12, background='darkblue', foreground='black', borderwidth=2, locale='de_DE', font=('Bold', 15))
-        birthdate.pack(pady=10)
+        birthdate_instruction_label.pack(pady=(10,0))
+        birthdate = DateEntry(self.main_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy', font=('Bold', 15))
+        birthdate.pack(pady=(10,30))
 
         start_registration_btn = ctk.CTkButton(self.main_frame, text="Start Registration", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.start_registration(name.get(), department_combobox.get(), birthdate.get()))
-        start_registration_btn.pack(pady=20)
+        start_registration_btn.pack(pady=50)
 
-    def start_registration(self, name,department_combobox,birthdate):
+
+    def start_registration(self, name, department_combobox,birthdate):
     
         if name:
-            self.registration_in_progress = True
             self.current_user_name = name 
-            self.delete_frameContent()
+            self.delete_mainFrameContent()
          
             cam_lb = ctk.CTkLabel(self.main_frame, text='')
             cam_lb.pack(side=ctk.LEFT, pady=20, padx=20)
             
-            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.capture_image(name, birthdate, department_combobox))
-
-            capture_btn.pack(pady=50)
+            capture_btn = ctk.CTkButton(self.main_frame, text="Capture Image", fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.registerUserWithPicture(name, birthdate, department_combobox))
+            capture_btn.pack(pady=(60, 0))
             
             self.add_webcam(cam_lb, 800, 600)    
 
 
-    def capture_image(self, name, birthdate, department):
+    def registerUserWithPicture(self, name, birthdate, department):
+
         ret, frame = self.cap.read()
 
-        
         if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect faces in the frame using face_recognition
             face_locations = face_recognition.face_locations(rgb_frame)
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
@@ -498,114 +501,78 @@ class App:
                     constants.departmentUserAttr : department,
                 }
                 self.collection_users.insert_one(user_data)
-                self.registration_in_progress = False
 
                 CTkMessagebox(title="Success", message=f"{self.current_user_name} is successfully registered in the database!", icon="check")
-
 
                 self.list_users_btn.invoke()
 
                 print(f"User {name} registered in MongoDB with Birthdate: {birthdate} and Department: {department}!")
 
             else:
-                print("No face detected. Please try again.")
+                CTkMessagebox(title="Error", message="No face detected. Please try again.", icon="cancel")
         else:
             print("Error in reading Camera")
-   
 
-    def find_verified_user(self):
-        # Capture a frame from the camera
-        ret, frame = self.cap.read()
 
-        if ret:
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    def showAllUsersInTable(self, user_table):
 
-            # Detect faces in the frame using face_recognition library
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+        self.delete_content_of_table(user_table)
+        all_users = self.collection_users.find()
 
-            # Assuming face_locations and face_encodings are obtained from face detection
-            if face_locations and face_encodings:
-                # Assume the first face is the user's face
-                user_face_encoding = face_encodings[0]
+        for user in all_users:
+            user_id = user.get(constants.idAttr) 
+            name = user.get(constants.nameUserAttr)
+            birthdate = user.get(constants.birthdateUserAttr)
+            department = user.get(constants.departmentUserAttr)
 
-                # Fetch all users from the MongoDB collection
-                all_users = self.collection_users.find()
-
-                for user in all_users:
-                    # Get the user's name and face encoding from the database
-                    db_user_name = user[constants.nameUserAttr]
-                    db_face_encoding = np.array(user[constants.faceEncodingUserAttr])
-
-                    # Compare the face encodings
-                    match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
-
-                    if any(match):
-                        # At least one matching face found
-                        return db_user_name
-                    else:
-                        # No matching face found
-                        return None
-            else:
-                return None
+            user_table.insert("", "end", values=(user_id, name, birthdate, department, "DELETE"), tags=("action_button",))
 
 
     def list_users(self):
-        self.delete_frameContent()
-
-        # Fetch all users from the MongoDB 
-        all_users = self.collection_users.find()
-
-        self.user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department", "Action"), show="headings", height=40)
+        self.delete_mainFrameContent()
 
         style = ttk.Style()
-        style.theme_use("winnative")
-        style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
+        style.theme_use("clam")
+        style.configure("Custom2.Treeview", background="black", fieldbackground="black", foreground="white")
 
-        self.user_list_table.heading("User ID", text="User ID")
-        self.user_list_table.heading("User Name", text="User Name")
-        self.user_list_table.heading("Date of Birth", text="Date of Birth")
-        self.user_list_table.heading("Department", text="Department")
-        self.user_list_table.heading("Action", text="Action")
+        user_list_table = ttk.Treeview(self.main_frame, columns=("User ID", "User Name", "Date of Birth", "Department", "Action"), show="headings", height=40, style="Custom2.Treeview")
 
-        self.user_list_table.column("User ID")
-        self.user_list_table.column("User Name")
-        self.user_list_table.column("Date of Birth")
-        self.user_list_table.column("Department")
-        self.user_list_table.column("Action")
+        user_list_table.heading("User ID", text="User ID")
+        user_list_table.heading("User Name", text="User Name")
+        user_list_table.heading("Date of Birth", text="Date of Birth")
+        user_list_table.heading("Department", text="Department")
+        user_list_table.heading("Action", text="Action")
 
-        for user in all_users:
-            user_id = user.get("_id", "") 
-            name = user.get(constants.nameUserAttr, "")
-            birthdate = user.get(constants.birthdateUserAttr, "")
-            department = user.get(constants.departmentUserAttr, "")
+        self.showAllUsersInTable(user_list_table)
 
-            self.user_list_table.insert("", "end", values=(user_id, name, birthdate, department, "DELETE"), tags=("action_button",))
+        user_list_table.bind("<Button-1>", lambda event: self.handle_click_for_delete_action(event, user_list_table))
+        user_list_table.pack(pady=20, padx=20)
 
 
-        self.user_list_table.tag_configure("action_button", anchor="center")
-        self.user_list_table.bind("<Button-1>", self.handle_click)
+    def handle_click_for_delete_action(self, event, user_table):
 
-        self.user_list_table.pack(pady=20, padx=20)
-
-    def handle_click(self, event):
-        item = self.user_list_table.selection()
+        item = user_table.selection()
         if item:
-            column = self.user_list_table.identify_column(event.x)
+            column = user_table.identify_column(event.x)
             if column == "#5":  
-                user_id = self.user_list_table.item(item, "values")[0]
-                confirmation = tkinter.messagebox.askquestion("Confirmation", "Do you want to delete this user?")
-                if confirmation == "yes":
+                user_id = user_table.item(item, "values")[0]
+                confirmationMsgBox = CTkMessagebox(title="Confirmation", message="Do you want to delete this user?", icon="question", option_1="No", option_2="Yes")
+                response = confirmationMsgBox.get()
+                if response == "Yes":
                     self.delete_user(user_id)
 
+
     def delete_user(self,user_id):
+
         print(f"Deleting user with ID: {user_id}")
 
-        user_id = ObjectId(user_id)
+        queryUserCollection = {constants.idAttr:ObjectId(user_id)}
+        queryAttendancyCollection = {constants.userIdAttr:ObjectId(user_id)}
 
-        result = self.collection_users.delete_one({"_id":user_id})
+        result = self.collection_users.delete_one(queryUserCollection)
 
         if result.deleted_count > 0:
+            self.collection_attendancy.delete_many(queryAttendancyCollection)
             print("User deleted successfully from MongoDB")
         else:
             print("User not found or not deleted")
@@ -616,21 +583,9 @@ class App:
 
 
     def logout_admin(self):
-
-        self.takeAttendance_btn.invoke() 
-
-        # Reset the admin login status
-        self.admin_logged_in = False
-
-        # Hide the buttons for admin functionalities
-        self.add_user_button.pack_forget()
-        self.list_users_btn.pack_forget()
-        self.takeAttendance_btn.pack(pady=20)
-        self.attendancyInfo_btn.pack(pady=20)
-        self.register_btn.pack(pady=20)
-        self.logout_admin_btn.pack_forget()
-
-
+        self.delete_optionFrameContent()
+        self.buildFrontend_sidebar_mainPage()
+     
 
 
     def add_webcam(self, label, width, height):
@@ -649,20 +604,29 @@ class App:
 
 
 
-    def delete_frameContent(self):
-        for frame in self.main_frame.winfo_children():
-            frame.destroy()
+    def delete_mainFrameContent(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
 
-    def hide_indicators(self):
+    def delete_optionFrameContent(self):
+        for widget in self.option_frame.winfo_children():
+            widget.destroy()
+    
+
+    def hide_indicators_mainPage(self):
         self.takeAttendance_indicate.configure(bg_color='#25282e')
-        self.register_indicate.configure(bg_color='#25282e')
+        self.admin_indicate.configure(bg_color='#25282e')
         self.attendancyInfo_indicate.configure(bg_color='#25282e')
-        
 
-    def indicate(self, lb, show_frame):
-        self.hide_indicators()
+    def hide_indicators_adminPage(self):
+        self.add_user_indicate.configure(bg_color='#25282e')
+        self.list_users_indicate.configure(bg_color='#25282e')
+
+
+    def indicate(self, lb, indicators_hide, show_frame):
+        indicators_hide()
         lb.configure(bg_color='#158aff')
-        self.delete_frameContent()
+        self.delete_mainFrameContent()
         show_frame()
 
 
