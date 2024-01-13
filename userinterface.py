@@ -8,9 +8,10 @@ import numpy as np
 import pymongo
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
+
 from tkcalendar import DateEntry
 
-#from tkvideoplayer import TkinterVideo
+
 
 import constants
 
@@ -345,60 +346,80 @@ class App:
         start_registration_btn.pack(pady=20)
 
     def support_page(self):
-        support_frame = ctk.CTkFrame(self.main_frame)
-        support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="w")
+        self.support_frame = ctk.CTkFrame(self.main_frame)
+        self.support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="n")
 
-       
-        # FAQ Button
-        FQAs_btn = ctk.CTkButton(support_frame, text="FAQs", bg_color='green', fg_color='green', hover_color='#2b5c30', width=150, height=300, command=self.show_faq)
-        FQAs_btn.pack(side=ctk.LEFT, padx=10, pady=10)
+        # Tutorial Button
+        tutorial_btn = ctk.CTkButton(self.support_frame, text="Tutorial Video", hover_color='green', fg_color='#307036', width=900, height=90, command=self.play_video)
+        tutorial_btn.pack(pady=10)
+        #pause button
+        self.pause_resume_btn = ctk.CTkButton(self.support_frame, text="", width=1, height=1, command=self.pause_resume_video)
+        self.pause_resume_btn.pack(pady=5)
 
+        # Restart Button
+        self.restart_btn = ctk.CTkButton(self.support_frame, text="",fg_color='#214a25', hover_color='green', width=1, height=1, command=self.restart_video)
+        self.restart_btn.pack(pady=5)
         
+        # Video Label
+       
+        self.video_label = ctk.CTkLabel(self.support_frame, text='')
+        self.video_label.pack(pady=10)
+
+        self.video_displayed = False  
+
+        # FAQ Button
+        FQAs_btn = ctk.CTkButton(self.support_frame, text="FAQs", fg_color='#214a25', hover_color='green', width=900, height=90, command=self.show_faq)
+        FQAs_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor= "n")
+
+        self.faq_label = ctk.CTkLabel(self.support_frame, text='', fg_color='#25282e', anchor='s')
+        self.faq_label.pack( pady=10, padx=20,anchor = "s") 
+
+
         # Contact Button
 
-        mail_btn = ctk.CTkButton(support_frame, text="Contact via Email", bg_color='red', hover_color='#5c1d1d', fg_color='red', width=150, height=300, command=self.show_mail)
-        mail_btn.pack(side=ctk.RIGHT, padx=10, pady=10)
+        mail_btn = ctk.CTkButton(self.support_frame, text="Contact via Email", hover_color='red', fg_color='#5c1d1d', width=900, height=90, command=self.show_mail)
+        mail_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor = "n")
 
-        self.faq_label = ctk.CTkLabel(support_frame, text='', bg_color='#292727', anchor='s', width=400)
-        self.faq_label.pack(side=ctk.BOTTOM, pady=10, padx=20) 
+    
+    
+        
+        
+      
+
+        
+      
+
 
     def show_mail(self):
-        if not hasattr(self, 'email_entry'):  # Create fields if they don't exist
-            self.email_entry = ctk.CTkEntry(self.main_frame, placeholder_text='Enter Email')
+            self.mail_window =ctk.CTkToplevel(self.main_frame)
+            self.email_entry = ctk.CTkEntry(self.mail_window, placeholder_text='Enter Email')
             self.email_entry.pack(pady=10)
 
-            self.body_entry = ctk.CTkEntry(self.main_frame, placeholder_text='Enter Body')
+            self.body_entry = ctk.CTkEntry(self.mail_window, placeholder_text='Enter Body', height=50)
             self.body_entry.pack(pady=10)
 
-            self.send_btn = ctk.CTkButton(self.main_frame, text="Send Email", bg_color='green', fg_color='white', hover_color='#2b5c30', command=self.send_mail)
+            self.send_btn = ctk.CTkButton(self.mail_window, text="Send Email", bg_color='green', fg_color='white', hover_color='#2b5c30', command=self.send_mail)
             self.send_btn.pack(pady=15)
             
             
-        # Toggle visibility of email, body, and send button
-        if self.email_entry.winfo_ismapped():
-            self.email_entry.pack_forget()
-            self.body_entry.pack_forget()
-            self.send_btn.pack_forget()
-        else:
-            self.email_entry.pack()
-            self.body_entry.pack()
-            self.send_btn.pack()
+        
 
 
     def send_mail(self):
+        
         email = self.email_entry.get()
         body = self.body_entry.get()
+        if not email or not body:
+               CTkMessagebox(title="Error", message="Something went wrong, try again", icon="cancel")
+               return
+        else:
+            CTkMessagebox(title="Success", message="Email sent successfully, we will try to answer it as soon as possible", icon="check", command=self.mail_window.destroy())
+            print(f"Email: {email}")
+            print(f"Body: {body}")
         
-        print(f"Email: {email}")
-        print(f"Body: {body}")
+
+        self.mail_window.destroy()
         
-         # Clear content in Entry widgets
-        self.email_entry.delete(0, 'end')
-        self.body_entry.delete(0, 'end')
-        # Hide the Entry widgets and the send button after sending the mail
-        self.email_entry.pack_forget()
-        self.body_entry.pack_forget()
-        self.send_btn.pack_forget()
        
 
     def show_faq(self):
@@ -424,7 +445,76 @@ class App:
         
 
 
-    #def add_video():
+    def play_video(self):
+       if  not self.video_displayed:
+        # Video is not displayed or has been hidden, show the video
+        file_path = "/Users/bernardoamaral/Downloads/Screen Recording 2024-01-07 at 13.55.22.mp4"  
+        self.cap = cv2.VideoCapture(file_path)
+        self.video_displayed = True
+        self.playing = True  #  state of video playing
+
+      
+        self.pause_resume_btn.configure(text="Pause", width=10, height=4,hover_color='red', fg_color='#5c1d1d')
+        self.restart_btn.configure(text="Restart", width=30, height=4,fg_color='#214a25', hover_color='green',)
+        #  update the video display
+        self.update_video()
+       else:
+        self.remove_video_display()
+
+    def remove_video_display(self):
+       # hide the video
+        self.cap.release()  # Release the video capture object
+        self.video_label.configure(image='', width=1, height=1,)
+        self.video_displayed = False
+        self.playing = False  # Set the state of video playing
+        
+        # Update Pause/Resume button text
+        self.pause_resume_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+        self.restart_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+
+
+    def pause_resume_video(self):
+        if self.playing:
+            self.playing = False
+            self.pause_resume_btn.configure(text="Resume")
+
+        else:
+            self.playing = True
+            self.pause_resume_btn.configure(text="Pause")
+            self.update_video()
+
+    def restart_video(self):
+        self.delete_frameContent()
+        self.support_page()
+        self.play_video()
+        
+       
+
+    def update_video(self):
+     if self.playing:
+        
+        ret, frame = self.cap.read()
+        
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(frame)
+            #image = image.resize((640, 480)) 
+            #photo = ImageTk.PhotoImage(image=image)
+            photo = ctk.CTkImage(image,size=(500,400))
+                    
+            # Update the video label with the new frame
+            self.video_label.configure(image=photo)
+            self.video_label._image = photo
+            
+            # Continue updating frames
+            self.support_frame.after(30, self.update_video)
+        else:
+            # Video has ended or encountered an error, stop updating
+            self.cap.release()
+            self.video_label.configure(image='')  # Clear the video label
+            
+     else: 
+         pass      
         
 
 
