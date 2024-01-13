@@ -34,3 +34,10 @@ statusAttr = "status"
 #Admin Account
 adminUsername = "admin"
 adminPassword = "admin"
+
+#sound filepath
+startWorkingSound = "resources\soundFiles\start_working.mp3"
+endWorkingSound = "resources\soundFiles\end_working.mp3"
+
+#Example Departments for Combobox
+department_options = ["IT", "RH", "LOGISTICS"]
