@@ -12,6 +12,7 @@ import csv
 from tkcalendar import DateEntry
 import hashlib
 import ctypes
+import sys
 
 import constants
 
@@ -640,7 +641,9 @@ class App:
 
 if __name__ == "__main__":
 
-    ctypes.windll.shcore.SetProcessDpiAwareness(0)
+    if sys.platform == 'win32':
+        ctypes.windll.shcore.SetProcessDpiAwareness(0)
+
 
     app = App()
     app.start()
