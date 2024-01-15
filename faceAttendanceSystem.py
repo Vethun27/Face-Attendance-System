@@ -349,9 +349,9 @@ class App:
         attendancy_table.configure(yscrollcommand=sb.set)
 
         start_filter_label = ctk.CTkLabel(attendancyInfo_frame, text="Start Date:")
-        start_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy')
+        start_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy', parent=attendancyInfo_window)
         end_filter_label = ctk.CTkLabel(attendancyInfo_frame, text="End Date:")
-        end_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy')
+        end_filter_entry = DateEntry(attendancyInfo_frame, width=12, background='darkblue', foreground='black', borderwidth=2, date_pattern='dd.mm.yyyy', parent=attendancyInfo_window)
         start_filter_label.pack(side=ctk.TOP, pady=(30,5), padx=20)
         start_filter_entry.pack(side=ctk.TOP, pady=0, padx=20)
         end_filter_label.pack(side=ctk.TOP, pady=(150, 5), padx=20)
