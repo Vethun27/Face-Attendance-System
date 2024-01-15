@@ -21,8 +21,6 @@ import constants
 class App:
     def __init__(self):
 
-        self.current_user_name = None  #  initialize the attribute name
-
         ctk.set_appearance_mode(constants.appApperanceMode)
         ctk.set_default_color_theme(constants.appDefaultColorTheme)
         self.root = ctk.CTk()
@@ -469,8 +467,7 @@ class App:
 
     def start_registration(self, name, department_combobox,birthdate):
     
-        if name:
-            self.current_user_name = name 
+        if name: 
             self.delete_mainFrameContent()
          
             cam_lb = ctk.CTkLabel(self.main_frame, text='')
@@ -503,7 +500,7 @@ class App:
                 }
                 self.collection_users.insert_one(user_data)
 
-                CTkMessagebox(title="Success", message=f"{self.current_user_name} is successfully registered in the database!", icon="check")
+                CTkMessagebox(title="Success", message=f"{name} is successfully registered in the database!", icon="check")
 
                 self.list_users_btn.invoke()
 
