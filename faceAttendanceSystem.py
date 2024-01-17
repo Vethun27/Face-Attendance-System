@@ -235,10 +235,9 @@ class App:
         if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+            face_encodings = face_recognition.face_encodings(rgb_frame)
 
-            if face_locations and face_encodings:
+            if  face_encodings:
                 user_face_encoding = face_encodings[0]
 
                 all_users = self.collection_users.find()
@@ -486,10 +485,9 @@ class App:
         if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            face_locations = face_recognition.face_locations(rgb_frame)
-            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+            face_encodings = face_recognition.face_encodings(rgb_frame)
 
-            if face_locations and face_encodings:
+            if face_encodings:
                 user_face_encoding = face_encodings[0]
 
                 user_data = {
