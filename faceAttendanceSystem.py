@@ -82,9 +82,17 @@ class App:
         self.admin_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
         self.admin_indicate.place(x=3, y=180)
 
+       
+
+        # Support/FAQs Button
+        self.support_btn = ctk.CTkButton(self.option_frame, text='Support/FAQs', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover_color='#333232', corner_radius=0, border_width=0, width=150, height=35,
+                                           command=lambda: self.indicate(self.support_indicate,self.hide_indicators_mainPage, self.support_page)) 
+        self.support_btn.pack(pady=20)
+       # self.support_btn.configure(state="normal")
+        self.support_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=40)
+        self.support_indicate.place(x=3, y=260)
+        
         self.takeAttendance_btn.invoke()  #invoke takeAttendance Button after building sidebar in main page
-
-
     
     
     def buildFrontend_sidebar_adminPage(self):
@@ -416,9 +424,9 @@ class App:
         instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
         instruction_label.pack(pady=(100, 10), padx=10)  
 
-        adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100)
+        adminname = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100,placeholder_text='User')
         adminname.pack(pady=10)
-        adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*')
+        adminpw = ctk.CTkEntry(self.main_frame, font=('Bold', 15), width=100, show='*',placeholder_text='Password')
         adminpw.pack(pady=10)
         login_btn = ctk.CTkButton(self.main_frame, text="Login", font=('Bold', 15), fg_color='white', text_color='black', hover_color='white', width=100, height=35, command=lambda: self.login_admin(adminname.get(),adminpw.get()))
         login_btn.pack(pady=20)
@@ -585,6 +593,180 @@ class App:
         self.buildFrontend_sidebar_mainPage()
      
 
+    
+
+    def support_page(self):
+            self.support_frame = ctk.CTkFrame(self.main_frame)
+            self.support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="n")
+
+            # Tutorial Button
+            tutorial_btn = ctk.CTkButton(self.support_frame, text="Tutorial Video", hover_color='green', fg_color='#307036', width=900, height=90, command=self.play_video)
+            tutorial_btn.pack(pady=10)
+            #pause button
+            self.pause_resume_btn = ctk.CTkButton(self.support_frame, text="", width=1, height=1, command=self.pause_resume_video)
+            self.pause_resume_btn.pack(pady=5)
+
+            # Restart Button
+            self.restart_btn = ctk.CTkButton(self.support_frame, text="",fg_color='#214a25', hover_color='green', width=1, height=1, command=self.restart_video)
+            self.restart_btn.pack(pady=5)
+            
+            # Video Label
+        
+            self.video_label = ctk.CTkLabel(self.support_frame, text='')
+            self.video_label.pack(pady=10)
+
+            self.video_displayed = False  
+
+            # FAQ Button
+            FQAs_btn = ctk.CTkButton(self.support_frame, text="FAQs", fg_color='#214a25', hover_color='green', width=900, height=90, command=self.show_faq)
+            FQAs_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor= "n")
+            self.faq_displayed = False
+            self.faq_label = ctk.CTkLabel(self.support_frame, text='', fg_color='#25282e', anchor='s')
+            self.faq_label.pack( pady=10, padx=20,anchor = "s") 
+
+
+            # Contact Button
+
+            mail_btn = ctk.CTkButton(self.support_frame, text="Contact via Email", hover_color='red', fg_color='#5c1d1d', width=900, height=90, command=self.show_mail)
+            mail_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor = "n")
+
+        
+        
+            
+            
+        
+
+        
+      
+
+
+    def show_mail(self):
+            self.mail_window =ctk.CTkToplevel(self.main_frame)
+            self.email_entry = ctk.CTkEntry(self.mail_window, placeholder_text='Enter Email')
+            self.email_entry.pack(pady=10)
+
+            self.body_entry = ctk.CTkEntry(self.mail_window, placeholder_text='Enter Body', height=50)
+            self.body_entry.pack(pady=10)
+
+            self.send_btn = ctk.CTkButton(self.mail_window, text="Send Email", bg_color='green', fg_color='white', hover_color='#2b5c30', command=self.send_mail)
+            self.send_btn.pack(pady=15)
+            
+            
+        
+
+
+    def send_mail(self):
+        
+        email = self.email_entry.get()
+        body = self.body_entry.get()
+        if not email or not body:
+               CTkMessagebox(title="Error", message="Something went wrong, try again", icon="cancel")
+               return
+        else:
+            CTkMessagebox(title="Success", message="Email sent successfully, we will try to answer it as soon as possible", icon="check")
+            print(f"Email: {email}")
+            print(f"Body: {body}")
+        
+
+        self.mail_window.destroy()
+        
+       
+
+    def show_faq(self):
+        if not self.faq_displayed:
+            faq_text = (
+                "Q: How does the face recognition attendance system work?\n"
+                "A: The system uses facial recognition technology to identify employees based on unique facial features."
+                "\n\nQ: Is the facial recognition system accurate?\n"
+                "A: Yes, the system is designed to be highly accurate in recognizing registered employees."
+                "\n\nQ: How is employee privacy protected?\n"
+                "A: The system only stores facial templates, not actual images, ensuring employee privacy."
+                "\n\nQ: What happens if an employee's face changes (e.g., due to a beard or glasses)?\n"
+                "A: The system is adaptable and can be retrained to accommodate such changes."
+                "\n\nQ: Is the attendance data secure?\n"
+                "A: Yes, the attendance data is encrypted and stored securely to prevent unauthorized access."
+            )
+            self.faq_label.configure(text=faq_text)
+          
+        else:
+            self.faq_label.configure(text='')  # Hide the label
+
+        self.faq_displayed = not self.faq_displayed  # Toggle the display state
+        
+
+
+    def play_video(self):
+       if  not self.video_displayed:
+        # Video is not displayed or has been hidden, show the video
+        file_path = "/Users/bernardoamaral/Desktop/tutorial.mp4"  
+        self.cap_2 = cv2.VideoCapture(file_path)
+        self.video_displayed = True
+        self.playing = True  #  state of video playing
+
+      
+        self.pause_resume_btn.configure(text="Pause", width=10, height=4,hover_color='red', fg_color='#5c1d1d')
+        self.restart_btn.configure(text="Restart", width=30, height=4,fg_color='#214a25', hover_color='green',)
+        #  update the video display
+        self.update_video()
+       else:
+        self.remove_video_display()
+
+    def remove_video_display(self):
+       # hide the video
+        self.cap_2.release()  # Release the video capture object
+        self.video_label.configure(image='', width=1, height=1,)
+        self.video_displayed = False
+        self.playing = False  # Set the state of video playing
+        
+        # Update Pause/Resume button text
+        self.pause_resume_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+        self.restart_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+
+
+    def pause_resume_video(self):
+        if self.playing:
+            self.playing = False
+            self.pause_resume_btn.configure(text="Resume")
+
+        else:
+            self.playing = True
+            self.pause_resume_btn.configure(text="Pause")
+            self.update_video()
+
+    def restart_video(self):
+        self.delete_mainFrameContent()
+        self.support_page()
+        self.play_video()
+        
+       
+
+    def update_video(self):
+     if self.playing:
+        
+        ret, frame = self.cap_2.read()
+        
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(frame)
+            #image = image.resize((640, 480)) 
+            #photo = ImageTk.PhotoImage(image=image)
+            photo = ctk.CTkImage(image,size=(500,400))
+                    
+            # Update the video label with the new frame
+            self.video_label.configure(image=photo)
+            self.video_label._image = photo
+            
+            # Continue updating frames
+            self.support_frame.after(30, self.update_video)
+        else:
+            # Video has ended or encountered an error, stop updating
+            self.cap_2.release()
+            self.video_label.configure(image='')  # Clear the video label
+            
+     else: 
+         pass      
+
+
 
     def add_webcam(self, label, width, height):
         self.process_webcam(label, width, height)
@@ -615,6 +797,7 @@ class App:
         self.takeAttendance_indicate.configure(bg_color='#25282e')
         self.admin_indicate.configure(bg_color='#25282e')
         self.attendancyInfo_indicate.configure(bg_color='#25282e')
+        self.support_indicate.configure(bg_color='#25282e')
 
     def hide_indicators_adminPage(self):
         self.add_user_indicate.configure(bg_color='#25282e')

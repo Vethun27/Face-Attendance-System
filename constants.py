@@ -36,8 +36,12 @@ adminUsername = "admin"
 adminPassword = "admin"
 
 #sound filepath
-startWorkingSound = "resources\soundFiles\start_working.mp3"
-endWorkingSound = "resources\soundFiles\end_working.mp3"
+#startWorkingSound = "resources\soundFiles\start_working.mp3"
+#endWorkingSound = "resources\soundFiles\end_working.mp3"
+
+startWorkingSound = "/Users/bernardoamaral/Documents/GitHub/Face-Attendance-System/resources/soundFiles/start_working.mp3"
+endWorkingSound = "/Users/bernardoamaral/Documents/GitHub/Face-Attendance-System/resources/soundFiles/end_working.mp3"
+
 
 #Example Departments for Combobox
 department_options = ["IT", "RH", "LOGISTICS"]
