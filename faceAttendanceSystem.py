@@ -14,37 +14,46 @@ import hashlib
 import ctypes
 import sys
 
-import constants
+import constants  #in this file all constant values are declared, which are used in this app
 
 
 
 class App:
     def __init__(self):
 
+        #Some intial configurations for the window
         ctk.set_appearance_mode(constants.appApperanceMode)
         ctk.set_default_color_theme(constants.appDefaultColorTheme)
         self.root = ctk.CTk()
         self.root.geometry(constants.appGeometry + constants.appPosition)
         self.root.resizable(width=False, height=False)
         self.root.title(constants.appTitle)
+
+        #reference to the cv2.VideoCapture instance with Camera index 0
+        #change the index if another camera should be used 
         self.cap = cv2.VideoCapture(0)
 
+        #Building functions of the user interface with sidebar and main frame
+        #Initially the sidebar for the main page is built and not the sidebar for admin page
         self.buildFrontend_sidebar()
         self.buildFrontend_mainFrame()
-        self.buildFrontend_sidebar_mainPage() #create initially the mainPage sidebar
+        self.buildFrontend_sidebar_mainPage()
         
-        # Connect to MongoDB
+        #Configuration of connection to the local MongoDB Server and deployed database (if not deployed than the deployment happens)
         self.client = pymongo.MongoClient(constants.mongodbHostAdress)
         self.db = self.client[constants.databaseName]
+        #references to the collections 
         self.collection_users = self.db[constants.userCollection]
         self.collection_attendancy = self.db[constants.attendancyCollection]
         self.collection_admins = self.db[constants.adminCollection]
 
+        #creates the admin account with username: admin and password: admin, if this account is not existing in the database
+        #otherwise this function returns without any changes 
         self.addAdminAccountOnce()
 
 
 
-
+    #inital function to build the sidebar
     def buildFrontend_sidebar(self):
         self.option_frame = ctk.CTkFrame(self.root, fg_color='#292727', bg_color='#292727')
         self.option_frame.pack(side=ctk.LEFT)
@@ -52,6 +61,8 @@ class App:
         self.option_frame.configure(height=620, width=150)
 
 
+    #initial function to build the main frame 
+    #(this is the frame where the other contents like e.g. buttons for starting and ending the work, camera and so on is placed in the window)
     def buildFrontend_mainFrame(self):
         self.main_frame = ctk.CTkFrame(self.root, border_color='black', border_width=5)
         self.main_frame.pack(side=ctk.LEFT)
@@ -59,6 +70,8 @@ class App:
         self.main_frame.configure(height=620, width=1100)
 
 
+    #function to build the sidebar for the main page 
+    #(this main page is for the user to register and see his attendance information)
     def buildFrontend_sidebar_mainPage(self):
         
         #Take Attendancy Button
@@ -76,17 +89,26 @@ class App:
         self.attendancyInfo_indicate.place(x=3, y=100)
 
         # Admin Button
-        self.register_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover=False, corner_radius=0, border_width=0, width=150, height=35,
+        self.admin_btn = ctk.CTkButton(self.option_frame, text='Administration', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover=False, corner_radius=0, border_width=0, width=150, height=35,
                                            command=lambda: self.indicate(self.admin_indicate, self.hide_indicators_mainPage, self.admin_page)) 
-        self.register_btn.pack(pady=20)
+        self.admin_btn.pack(pady=20)
         self.admin_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
         self.admin_indicate.place(x=3, y=180)
+
+        # Support/FAQ Button
+        self.support_btn = ctk.CTkButton(self.option_frame, text='Support/FAQs', font=('Bold', 15), fg_color='#292727', bg_color='#292727', text_color='#158aff', hover=False, corner_radius=0, border_width=0, width=150, height=35,
+                                           command=lambda: self.indicate(self.support_indicate, self.hide_indicators_mainPage, self.support_page)) 
+        self.support_btn.pack(pady=20)
+        self.support_indicate = ctk.CTkLabel(self.option_frame, text='', bg_color='#595757', width=5, height=34)
+        self.support_indicate.place(x=3, y=255)
+
 
         self.takeAttendance_btn.invoke()  #invoke takeAttendance Button after building sidebar in main page
 
 
     
-    
+    #function to build the sidebar for the admin page 
+    #(this admin view is for the admin with administrative rights)
     def buildFrontend_sidebar_adminPage(self):
 
         #Add user button
@@ -120,6 +142,7 @@ class App:
 
 
 
+   
 
 
     # possiblity to create admin accounts 
@@ -140,6 +163,7 @@ class App:
     
 
 
+    #function to add a document to the collection attendancy
     def register_attendancy(self, _userId, startOrEnd):
         timestamp = datetime.now()
 
@@ -152,7 +176,10 @@ class App:
         self.collection_attendancy.insert_one(attendancy_data)
          
 
-
+    # With this function it is possible to check if a user can start or end his work
+    # This function is important because this hinders a user to start twice in a row
+    # So the if the user started his work already he can only end his word and not start it again
+    # And the same way around if the user ended his work he can only start his work 
     def check_status_before_register_attendancy(self, _userId, statusToCheck):
 
         if _userId and statusToCheck:
@@ -173,14 +200,15 @@ class App:
         return False
 
 
-
+    # general function to play a sound
     def playSoundInTakingAttendancy(self, filename):
         pygame.mixer.init()
         pygame.mixer.music.load(filename)
         pygame.mixer.music.play()
 
     
-
+    # the actual function to start the work
+    # this function will be called as an event for pressing the green button to start the work
     def start_working(self):
         db_user_id = self.find_userID_by_picture()
         
@@ -196,7 +224,8 @@ class App:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
 
-    
+    # the actual function to end the work
+    # this function will be called as an event for pressing the red button to end the work
     def end_working(self):
         db_user_id = self.find_userID_by_picture()
 
@@ -212,7 +241,8 @@ class App:
             CTkMessagebox(title="Error", message="No matching user found", icon="cancel")
 
      
-
+    # general function to get dataobject or field value from a document of the users collection
+    # we have to provide the userID (unique identifier) and the fieldname from which the value is needed
     def find_dataObj_by_id(self, _userId, dataAttr):
 
         if _userId:
@@ -227,7 +257,9 @@ class App:
         return None
 
     
-
+    # function to get the userID (unique key identifier) based on face recognition
+    # So every face descriptor of documents in the collection users will checked and if there is a matching a face 
+    # than the userID (unique key identifier) will returned immediately
     def find_userID_by_picture(self):
 
         ret, frame = self.cap.read()
@@ -235,6 +267,7 @@ class App:
         if ret:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+            # creation of face desciptor
             face_encodings = face_recognition.face_encodings(rgb_frame)
 
             if  face_encodings:
@@ -247,6 +280,7 @@ class App:
                     db_user_id = user[constants.idAttr]
                     db_face_encoding = user[constants.faceEncodingUserAttr]
 
+                    #comparision between two face descriptors
                     match = face_recognition.compare_faces([db_face_encoding], user_face_encoding)
 
                     if any(match):
@@ -255,6 +289,7 @@ class App:
         
 
 
+    # function to read in the filtered data in the grid and save it in CSV file 
     def saveAttendancyInfoAsCSV(self, table, rootWindow):
 
         if not table.get_children():
@@ -274,6 +309,11 @@ class App:
             print(f"CSV file saved to: {filepath}")
 
 
+
+    # function to filter a desired timerange to show it in the table
+    # So this function takes as input the start and end time as limits for the time range, for which the user want to see his attendancy
+    # It searches with this information in the database in collection attendancy after documents, whose timstamp value is in the desired time range
+    # the table, where the filtered output will be displayed, will filled with those data
     def getFilteredDatesAndTime(self, userId,attendancy_table, startDate_filter, endDate_filter):
         
         self.delete_content_of_table(attendancy_table)
@@ -305,8 +345,9 @@ class App:
              CTkMessagebox(title="Error", message="Invalid Dates", icon="cancel")
 
     
+    
+    #to clear the attendancy collection for a specific time range (i.e. delete all documents with timestamps within a given time range)
     #Currently not in use, but after extension of the userinterface to two datepickers, this function can be used
-    #to clear the attendancy collection
     def clearAttendancyCollection(self ,start_date_entry, end_date_entry):
 
         start_date = datetime.strptime(start_date_entry.get(), "%d.%m.%Y")
@@ -320,6 +361,10 @@ class App:
 
 
 
+
+    # Function which creates a new window after the user logged in with his face to see his attendance
+    # This window shows a table where the filtered attendance can be displayed and the user can cofigure the limits for the time range
+    # The possibility to download the filtered output as CSV is also given 
     def newWindow_attendancyInfo(self, userId):
         attendancyInfo_window = ctk.CTkToplevel(self.root)
         attendancyInfo_window.geometry(constants.appGeometry)
@@ -363,8 +408,7 @@ class App:
 
         
     
-
-
+    # general function to delete every content from a table
     def delete_content_of_table(self, table):
         if(table):
             for item in table.get_children():
@@ -372,7 +416,7 @@ class App:
 
  
 
-    
+    # This is the function which gets called as event, if a user tries to login to see his attendance
     def loginUser_filterUserAttendancy(self):
         db_user_id = self.find_userID_by_picture()
         if db_user_id:
@@ -382,7 +426,7 @@ class App:
     
 
 
-
+    # function which builds the main frame for taking attendancy page
     def takeAttendance_page(self):
 
         takeAttendace_frame = ctk.CTkFrame(self.main_frame)
@@ -398,6 +442,7 @@ class App:
         end_work_btn.pack(side=ctk.TOP, anchor='s', pady=15, padx=20)
 
 
+    # function which builds the main frame for info attendancy page
     def attendancyInfo_page(self):
         attendancyInfoLogin_frame = ctk.CTkFrame(self.main_frame)
         attendancyInfoLogin_frame.pack(pady=20, padx=20, side=ctk.TOP)
@@ -409,7 +454,7 @@ class App:
         end_work_btn.pack(side=ctk.TOP, anchor='s', pady=15, padx=20)
         
 
-   
+   # function which builds the main frame for admin page
     def admin_page(self):
 
         instruction_label = ctk.CTkLabel(self.main_frame, text="Please Enter the Admin credentials", font=('Bold', 20), text_color='white')
@@ -424,6 +469,8 @@ class App:
 
 
 
+    # This function checks if the credentials for the admin login is right
+    # the inputed password get hashed and used with the username for the query in the database 
     def login_admin(self,adminname,adminpw):
 
         query = {
@@ -441,7 +488,7 @@ class App:
             CTkMessagebox(title="Error", message="Invalid admin credentials!", icon="cancel")
 
  
-
+    # function which builds the main frame for registration page
     def register_page(self):
         self.delete_mainFrameContent()
 
@@ -464,6 +511,8 @@ class App:
         start_registration_btn.pack(pady=50)
 
 
+    #this is the function which is called as event, when the admin inputed all user data, which should be registered as new worker to the system
+    #the camera is used to generate from a live capture the face descriptor and save it in the database
     def start_registration(self, name, department_combobox,birthdate):
     
         if name: 
@@ -478,6 +527,7 @@ class App:
             self.add_webcam(cam_lb, 800, 600)    
 
 
+    #This function is used to insert a document in the user collection with the user informations and especially the face descriptor of the user
     def registerUserWithPicture(self, name, birthdate, department):
 
         ret, frame = self.cap.read()
@@ -510,6 +560,7 @@ class App:
             print("Error in reading Camera")
 
 
+    # This functions fetches all users from the user collection and inserts it in the table
     def showAllUsersInTable(self, user_table):
 
         self.delete_content_of_table(user_table)
@@ -524,6 +575,8 @@ class App:
             user_table.insert("", "end", values=(user_id, name, birthdate, department, "DELETE"), tags=("action_button",))
 
 
+    # This function is used to display all registered users in the table
+    # In the table it self there the last column is bound to a delete action to delete a user document from the user collection
     def list_users(self):
         self.delete_mainFrameContent()
 
@@ -545,6 +598,10 @@ class App:
         user_list_table.pack(pady=20, padx=20)
 
 
+    # This function is the delete action, which gets called when the delete action for specfic user within the table is triggered
+    #small bug: Actually it is possible to select one row in the table which corresponds to select one user from the database
+    #           Than it is possible to click anywhere in last column to trigger the delete action --> So the binding is between the column of the table and the delete function
+    #           Possible Fix: Add a new button near to the table which removes the selected user in the table from the database                
     def handle_click_for_delete_action(self, event, user_table):
 
         item = user_table.selection()
@@ -558,6 +615,8 @@ class App:
                     self.delete_user(user_id)
 
 
+    # This function deletes the user from the database or better say from the collection of users
+    # After deletation of the user from the collection users, the documents from that deleted user in the attendancy collection will also deleted
     def delete_user(self,user_id):
 
         print(f"Deleting user with ID: {user_id}")
@@ -577,16 +636,65 @@ class App:
         self.list_users()
 
 
-
+    # This function is used for the event of the button click to go back to the main page
+    # So if we click to go back to the main the admin page will be closed and the main page from the starting will be displayed
+    # The admin must login again if goes back to main once
     def logout_admin(self):
         self.delete_optionFrameContent()
         self.buildFrontend_sidebar_mainPage()
      
 
 
+    # function which builds the main frame for support and FAQ page
+    def support_page(self):
+        self.support_frame = ctk.CTkFrame(self.main_frame)
+        self.support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="n")
+
+        # Tutorial Button
+        tutorial_btn = ctk.CTkButton(self.support_frame, text="Tutorial Video", hover_color='green', fg_color='#307036', width=900, height=90, command=self.play_video)
+        tutorial_btn.pack(pady=10)
+
+        #pause button
+        self.pause_resume_btn = ctk.CTkButton(self.support_frame, text="", width=1, height=1, command=self.pause_resume_video)
+        self.pause_resume_btn.pack(pady=5)
+
+        # Restart Button
+        self.restart_btn = ctk.CTkButton(self.support_frame, text="",fg_color='#214a25', hover_color='green', width=1, height=1, command=self.restart_video)
+        self.restart_btn.pack(pady=5)
+        
+        # Video Label
+        self.video_label = ctk.CTkLabel(self.support_frame, text='')
+        self.video_label.pack(pady=10)
+
+        self.video_displayed = False  
+
+        # FAQ Button
+        FQAs_btn = ctk.CTkButton(self.support_frame, text="FAQs", fg_color='#214a25', hover_color='green', width=900, height=90, command=self.show_faq)
+        FQAs_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor= "n")
+        self.faq_displayed = False
+        self.faq_label = ctk.CTkLabel(self.support_frame, text='', fg_color='#25282e', anchor='s')
+        self.faq_label.pack( pady=10, padx=20,anchor = "s") 
+
+
+    def show_faq(self):
+        if not self.faq_displayed:
+            self.faq_label.configure(text=constants.faq_text)
+          
+        else:
+            self.faq_label.configure(text='')  
+
+        self.faq_displayed = not self.faq_displayed 
+
+
+
+
+
+
+    # Adds the camera to a label to do the live capture
     def add_webcam(self, label, width, height):
         self.process_webcam(label, width, height)
 
+    # This function get called every 20 ms, so that the label gets updated with the current cpature of the camera --> live capturing with 50 FPS 
     def process_webcam(self, label, width, height):
         ret, frame = self.cap.read()
 
@@ -599,33 +707,39 @@ class App:
             print("Error in reading Camera")
 
 
-
+    # general function to delete every content from the main frame
     def delete_mainFrameContent(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
+    # general function to delete every content from the option frame, which is the sidebar
     def delete_optionFrameContent(self):
         for widget in self.option_frame.winfo_children():
             widget.destroy()
     
-
+    # general function to hide the blue indicators in the sidebar of the main page
+    # the indicators shows which content is showed in the main frame based on the click on the options of the sidebar
     def hide_indicators_mainPage(self):
         self.takeAttendance_indicate.configure(bg_color='#25282e')
         self.admin_indicate.configure(bg_color='#25282e')
         self.attendancyInfo_indicate.configure(bg_color='#25282e')
+        self.support_indicate.configure(bg_color='#25282e')
 
+    # general function to hide the blue indicators in the sidebar of the admin page
+    # the indicators shows which content is showed in the main frame based on the click on the options of the sidebar
     def hide_indicators_adminPage(self):
         self.add_user_indicate.configure(bg_color='#25282e')
         self.list_users_indicate.configure(bg_color='#25282e')
 
-
+    # general function to firstly hide every indicators; secondly, color the indicator of that option/button, which was selected in the sidebar
+    # delete all content from the main frame and show that content in the main frame, which was selected in the sidebar
     def indicate(self, lb, indicators_hide, show_frame):
         indicators_hide()
         lb.configure(bg_color='#158aff')
         self.delete_mainFrameContent()
         show_frame()
 
-
+    # start function which contians the function call to run the main loop of the CustomTKinter App 
     def start(self):
         self.root.mainloop()
 
@@ -633,13 +747,16 @@ class App:
 
 
 
-
+# The main fucntion
 if __name__ == "__main__":
 
+    # For windows system: To ignore the DPI(Dot per inch) Settings for the rendering of the window
+    # We had the problem that on different Desktops PCs with different Resolution of the monitor the app gets visualized in different ways
+    # To hinder that this was implemented to visualize the same window on a windows system with different montitor resolution
     if sys.platform == 'win32':
         ctypes.windll.shcore.SetProcessDpiAwareness(0)
 
-
+    # Instantiating the App class and start the main loop of the CustomTKinter app.
     app = App()
     app.start()
 
