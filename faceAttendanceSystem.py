@@ -650,25 +650,20 @@ class App:
         self.support_frame = ctk.CTkFrame(self.main_frame)
         self.support_frame.pack(pady=20, padx=20, side=ctk.TOP, anchor="n")
 
-        # Tutorial Button
         tutorial_btn = ctk.CTkButton(self.support_frame, text="Tutorial Video", hover_color='green', fg_color='#307036', width=900, height=90, command=self.play_video)
         tutorial_btn.pack(pady=10)
 
-        #pause button
         self.pause_resume_btn = ctk.CTkButton(self.support_frame, text="", width=1, height=1, command=self.pause_resume_video)
         self.pause_resume_btn.pack(pady=5)
 
-        # Restart Button
         self.restart_btn = ctk.CTkButton(self.support_frame, text="",fg_color='#214a25', hover_color='green', width=1, height=1, command=self.restart_video)
         self.restart_btn.pack(pady=5)
         
-        # Video Label
         self.video_label = ctk.CTkLabel(self.support_frame, text='')
         self.video_label.pack(pady=10)
 
         self.video_displayed = False  
 
-        # FAQ Button
         FQAs_btn = ctk.CTkButton(self.support_frame, text="FAQs", fg_color='#214a25', hover_color='green', width=900, height=90, command=self.show_faq)
         FQAs_btn.pack(side=ctk.TOP, padx=10, pady=10, anchor= "n")
         self.faq_displayed = False
@@ -676,6 +671,7 @@ class App:
         self.faq_label.pack( pady=10, padx=20,anchor = "s") 
 
 
+    # function which gets called as an event after clicking on the button to toggle the FAQ text
     def show_faq(self):
         if not self.faq_displayed:
             self.faq_label.configure(text=constants.faq_text)
@@ -684,6 +680,78 @@ class App:
             self.faq_label.configure(text='')  
 
         self.faq_displayed = not self.faq_displayed 
+
+    # this function gets called as an event for clicking on the tutrial video button to toggle the displaying of the video
+    def play_video(self):
+       if  not self.video_displayed:
+
+            self.video = cv2.VideoCapture(constants.video_filePath)
+            self.video_displayed = True
+            self.playing = True
+
+            self.video_label.pack(pady=10, after=self.restart_btn)
+            self.pause_resume_btn.configure(text="Pause", width=10, height=4,hover_color='red', fg_color='#5c1d1d')
+            self.restart_btn.configure(text="Restart", width=30, height=4,fg_color='#214a25', hover_color='green',)
+            self.update_video()
+       else:
+            self.remove_video_display()
+
+    # this function removes the video and the control buttons of the video to not displaying the tutorial part
+    def remove_video_display(self):
+        self.video.release()
+    
+        self.video_label.pack_forget()
+        self.video_displayed = False
+        self.playing = False 
+        
+        self.pause_resume_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+        self.restart_btn.configure(text="",fg_color='#25282e', hover_color='#25282e',width=1, height=1)
+
+    #this function toggles the pause and resume of the video
+    #so this function is called as an event for clicking on resume/stop button
+    def pause_resume_video(self):
+        if self.playing:
+            self.playing = False
+            self.pause_resume_btn.configure(text="Resume")
+
+        else:
+            self.playing = True
+            self.pause_resume_btn.configure(text="Pause")
+            self.update_video()
+
+    # this function gets called as an event for clicking on restarting the video
+    def restart_video(self):
+        self.video.release()
+        self.video = cv2.VideoCapture(constants.video_filePath)
+        self.setCurrentFrameOfVideo()
+       
+
+    # this function get used to display the current frame of the video in the video label
+    # if the video ended than the video gets restarted
+    def setCurrentFrameOfVideo(self):
+        ret, frame = self.video.read()
+        if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                image = Image.fromarray(frame)
+                photo = ctk.CTkImage(image,size=(500,400))
+                
+                self.video_label.configure(image=photo)
+        else:
+            self.restart_video()
+
+
+
+    # this function is used to update the video label with the current frame so that we can see the video
+    # this function get called every 17ms --> We have a video output with 50 FPS
+    def update_video(self):
+        if self.playing:
+            
+            self.setCurrentFrameOfVideo()    
+            self.support_frame.after(20, self.update_video)
+
+        else: 
+            pass
+
 
 
 
@@ -717,6 +785,7 @@ class App:
         for widget in self.option_frame.winfo_children():
             widget.destroy()
     
+
     # general function to hide the blue indicators in the sidebar of the main page
     # the indicators shows which content is showed in the main frame based on the click on the options of the sidebar
     def hide_indicators_mainPage(self):
@@ -725,11 +794,13 @@ class App:
         self.attendancyInfo_indicate.configure(bg_color='#25282e')
         self.support_indicate.configure(bg_color='#25282e')
 
+
     # general function to hide the blue indicators in the sidebar of the admin page
     # the indicators shows which content is showed in the main frame based on the click on the options of the sidebar
     def hide_indicators_adminPage(self):
         self.add_user_indicate.configure(bg_color='#25282e')
         self.list_users_indicate.configure(bg_color='#25282e')
+
 
     # general function to firstly hide every indicators; secondly, color the indicator of that option/button, which was selected in the sidebar
     # delete all content from the main frame and show that content in the main frame, which was selected in the sidebar
@@ -738,6 +809,7 @@ class App:
         lb.configure(bg_color='#158aff')
         self.delete_mainFrameContent()
         show_frame()
+
 
     # start function which contians the function call to run the main loop of the CustomTKinter App 
     def start(self):
